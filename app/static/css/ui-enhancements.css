@@ -1,0 +1,22 @@
+:root{--sidebar-collapsed-width:72px}
+/* Collapsed sidebar */
+.sidebar.collapsed{width:var(--sidebar-collapsed-width)}
+.sidebar.collapsed .app-title, .sidebar.collapsed .nav-section-title, .sidebar.collapsed .nav-item span, .sidebar.collapsed .sidebar-footer .user-details{display:none}
+.sidebar{transition:width 0.18s ease}
+
+/* Quick search in topbar */
+.quick-search{padding:8px 12px;border:1px solid var(--border-dark);border-radius:8px;min-width:260px;font-size:13px;outline:none}
+.quick-search:focus{box-shadow:0 0 0 2px rgba(37,99,235,0.08);border-color:var(--primary)}
+
+/* Topbar left grouping */
+.topbar-left{display:flex;align-items:center;gap:12px}
+
+/* Ensure sidebar toggle button looks crisp */
+.btn-icon{background:transparent;border:1px solid transparent;padding:6px 8px;border-radius:8px;font-size:18px}
+.btn-icon:hover{background:var(--surface-hover)}
+
+/* Responsive tweak: when collapsed on narrow screens, show overlay */
+@media (max-width:900px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:40}
+  .main-layout{margin-left:var(--sidebar-collapsed-width)}
+}

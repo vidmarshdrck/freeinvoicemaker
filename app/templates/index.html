@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ app_name }} - Local-First Open Source Invoicing</title>
+  <meta name="description" content="Free, self-hostable, local-first invoice, quotation, receipt, and document maker with a powerful REST API for AI agents and humans.">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/ui-enhancements.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-badge">FIM</div>
+        <div class="app-title">
+          <h1>{{ app_name }}</h1>
+          <div class="version-tag">v{{ app_version }} • Open Source</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Overview</div>
+        <a class="nav-item active" data-section="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          <span>Dashboard</span>
+        </a>
+
+        <div class="nav-section-title">Documents</div>
+        <a class="nav-item" data-section="invoices">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+          <span>Invoices</span>
+        </a>
+        <a class="nav-item" data-section="quotations">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Quotations</span>
+        </a>
+        <a class="nav-item" data-section="estimates">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <span>Estimates</span>
+        </a>
+        <a class="nav-item" data-section="receipts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+          <span>Receipts</span>
+        </a>
+
+        <div class="nav-section-title">Management</div>
+        <a class="nav-item" data-section="customers">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Customers</span>
+        </a>
+        <a class="nav-item" data-section="products">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+          <span>Products & Services</span>
+        </a>
+        <a class="nav-item" data-section="businesses">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M14 16h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg>
+          <span>Business Profiles</span>
+        </a>
+
+        <div class="nav-section-title">Integration & System</div>
+        <a class="nav-item" data-section="api-keys">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 5 4 4"/><path d="M13 7 8.7 11.3a2 2 0 0 0-.58 1.23l-.18 2.27 2.27-.18a2 2 0 0 0 1.23-.58L16 9.7"/><circle cx="7.5" cy="16.5" r="3.5"/></svg>
+          <span>API Keys (AI Agent)</span>
+        </a>
+        <a class="nav-item" data-section="settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Backups & Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile-summary">
+          <div class="user-avatar" id="userAvatar">A</div>
+          <div class="user-details">
+            <span class="user-name" id="currentUserName">Administrator</span>
+            <span class="user-email" id="currentUserEmail">admin@example.com</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Layout -->
+    <main class="main-layout">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <button id="sidebarToggle" class="btn btn-icon" aria-label="Toggle sidebar">☰</button>
+          <div class="business-selector-wrap">
+            <label for="topBusinessSelect">Active Business:</label>
+            <select id="topBusinessSelect" class="business-select">
+              <option value="">Loading businesses...</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <input class="quick-search" id="topQuickSearch" placeholder="Quick search invoices, customers..." oninput="handleQuickSearch(this.value)" />
+          <a href="/api/docs" target="_blank" class="btn btn-secondary btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+            API Docs
+          </a>
+          <button class="btn btn-primary btn-sm" onclick="openNewDocumentModal('invoice')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Invoice
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Views -->
+      <div class="content-body">
+        <!-- 1. DASHBOARD VIEW -->
+        <section id="section-dashboard" class="view-section active">
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Dashboard</h2>
+              <p class="page-subtitle">Overview of financial activity and recent documents.</p>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-secondary btn-sm" onclick="openNewDocumentModal('quotation')">+ New Quotation</button>
+              <button class="btn btn-primary btn-sm" onclick="openNewDocumentModal('invoice')">+ New Invoice</button>
+            </div>
+          </div>
+
+          <!-- Financial Metrics -->
+          <div class="metrics-grid">
+            <div class="metric-card highlight">
+              <div class="metric-label">Total Invoiced</div>
+              <div class="metric-value" id="statTotalInvoiced">$0.00</div>
+              <div class="metric-footer"><span id="countInvoices">0</span> total invoices</div>
+            </div>
+            <div class="metric-card success-border">
+              <div class="metric-label">Total Paid</div>
+              <div class="metric-value" id="statTotalPaid" style="color:var(--success);">$0.00</div>
+              <div class="metric-footer"><span id="countReceipts">0</span> receipts issued</div>
+            </div>
+            <div class="metric-card warning-border">
+              <div class="metric-label">Outstanding Balance</div>
+              <div class="metric-value" id="statTotalOutstanding" style="color:var(--warning);">$0.00</div>
+              <div class="metric-footer">Pending invoice payments</div>
+            </div>
+            <div class="metric-card danger-border">
+              <div class="metric-label">Overdue Invoices</div>
+              <div class="metric-value" id="statTotalOverdue" style="color:var(--danger);">$0.00</div>
+              <div class="metric-footer">Requires follow-up</div>
+            </div>
+          </div>
+
+          <!-- Activity & Document Stats -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Recent Documents</h3>
+              <button class="btn btn-secondary btn-sm" onclick="switchSection('invoices')">View All Invoices</button>
+            </div>
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Number</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Grand Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="recentDocumentsTableBody">
+                  <tr><td colspan="6" style="text-align:center;">Loading recent activity...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. INVOICES VIEW -->
+        <section id="section-invoices" class="view-section">
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Invoices</h2>
+              <p class="page-subtitle">Create, manage, and track invoices.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openNewDocumentModal('invoice')">+ Create Invoice</button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="filter-bar">
+                <input type="text" class="search-input" id="invoicesSearchInput" placeholder="Search invoice # or ref..." oninput="loadInvoices(this.value)">
+                <select class="filter-select" id="invoiceStatusFilter" onchange="loadInvoices(this.value)">
+                  <option value="">All Statuses</option>
+                  <option value="draft">Draft</option>
+                  <option value="sent">Sent</option>
+                  <option value="partially_paid">Partially Paid</option>
+                  <option value="paid">Paid</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Invoice #</th>
+                    <th>Issue Date</th>
+                    <th>Due Date</th>
+                    <th>Total</th>
+                    <th>Amount Due</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="invoicesTableBody">
+                  <tr><td colspan="7" style="text-align:center;">Loading invoices...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. QUOTATIONS VIEW -->
+        <section id="section-quotations" class="view-section">
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Quotations</h2>
+              <p class="page-subtitle">Manage price quotations with 1-click invoice conversion.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openNewDocumentModal('quotation')">+ Create Quotation</button>
+          </div>
+
+          <div class="card">
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Quotation #</th>
+                    <th>Issue Date</th>
+                    <th>Valid Until</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="quotationsTableBody">
+                  <tr><td colspan="6" style="text-align:center;">Loading quotations...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. ESTIMATES VIEW -->
+        <section id="section-estimates" class="view-section">
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Estimates</h2>
+              <p class="page-subtitle">Create project estimates and convert them into invoices when approved.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openNewDocumentModal('estimate')">+ Create Estimate</button>
+          </div>
+
+          <div class="card">
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Estimate #</th>
+                    <th>Issue Date</th>
+                    <th>Valid Until</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="estimatesTableBody">
+                  <tr><td colspan="6" style="text-align:center;">Loading estimates...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. RECEIPTS VIEW -->
+        <section id="section-receipts" class="view-section">
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Payment Receipts</h2>
+              <p class="page-subtitle">Track payment receipts and export PDF proofs of payment.</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Receipt #</th>
+                    <th>Payment Date</th>
+                    <th>Method</th>
+                    <th>Reference</th>
+                    <th>Amount Received</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="receiptsTableBody">
+                  <tr><td colspan="6" style="text-align:center;">Loading receipts...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. CUSTOMERS VIEW -->
+        <section id="section-customers" class="view-section">
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Customers</h2>
+              <p class="page-subtitle">Manage client accounts, contact information, and billing history.</p>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-secondary btn-sm" onclick="exportCustomersCSV()">Export CSV</button>
+              <label class="btn btn-secondary btn-sm" style="cursor:pointer;">
+                Import CSV
+                <input type="file" accept=".csv" style="display:none;" onchange="importCustomersCSV(this)">
+              </label>
+              <button class="btn btn-primary btn-sm" onclick="openCreateCustomerModal()">+ Add Customer</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <input type="text" class="search-input" placeholder="Search customer name, email, company..." oninput="loadCustomers(this.value)">
+            </div>
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Display Name</th>
+                    <th>Company</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Location</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="customersTableBody">
+                  <tr><td colspan="6" style="text-align:center;">Loading customers...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7. PRODUCTS & SERVICES VIEW -->
+        <section id="section-products" class="view-section">
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Products & Services</h2>
+              <p class="page-subtitle">Reusable items and pricing packages.</p>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-secondary btn-sm" onclick="exportProductsCSV()">Export CSV</button>
+              <label class="btn btn-secondary btn-sm" style="cursor:pointer;">
+                Import CSV
+                <input type="file" accept=".csv" style="display:none;" onchange="importProductsCSV(this)">
+              </label>
+              <button class="btn btn-primary btn-sm" onclick="openCreateProductModal()">+ Add Item</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <input type="text" class="search-input" placeholder="Search item name, SKU, description..." oninput="loadProducts(this.value)">
+            </div>
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>SKU</th>
+                    <th>Unit</th>
+                    <th>Price</th>
+                    <th>Tax Rate</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="productsTableBody">
+                  <tr><td colspan="6" style="text-align:center;">Loading products...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 8. BUSINESS PROFILES VIEW -->
+        <section id="section-businesses" class="view-section">
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">Business Profiles</h2>
+              <p class="page-subtitle">Manage separate business profiles with distinct branding, bank details, and document numbering.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openCreateBusinessModal()">+ New Business</button>
+          </div>
+
+          <div class="card">
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Business / Trading Name</th>
+                    <th>Registration #</th>
+                    <th>Tax/VAT #</th>
+                    <th>Contact</th>
+                    <th>Currency & Template</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="businessesTableBody">
+                  <tr><td colspan="6" style="text-align:center;">Loading profiles...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 9. API KEYS VIEW -->
+        <section id="section-api-keys" class="view-section">
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">API Keys (AI Agent & Integration)</h2>
+              <p class="page-subtitle">Generate scoped REST API keys for Hermes, n8n, Python scripts, and automated bots.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openCreateApiKeyModal()">+ Generate API Key</button>
+          </div>
+
+          <div class="card">
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Key Name</th>
+                    <th>Key Prefix</th>
+                    <th>Scopes</th>
+                    <th>Created</th>
+                    <th>Last Used</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="apiKeysTableBody">
+                  <tr><td colspan="6" style="text-align:center;">Loading keys...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 10. BACKUPS & SETTINGS VIEW -->
+        <section id="section-settings" class="view-section">
+          <div class="page-header">
+            <div>
+              <h2 class="page-title">System Settings & Backups</h2>
+              <p class="page-subtitle">Manage full local backups, password changes, and application configuration.</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Local Backup & Restore</h3></div>
+            <div class="card-body">
+              <p style="color:var(--text-muted); margin-bottom:16px;">
+                Download a self-contained ZIP archive containing your entire SQLite database and uploaded logos/signatures. You can restore this archive on any desktop computer or VPS running Free Invoice Maker.
+              </p>
+              <div style="display:flex; gap:12px;">
+                <button class="btn btn-primary" onclick="triggerBackupExport()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Export Full Backup (.zip)
+                </button>
+                <label class="btn btn-secondary" style="cursor:pointer;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Restore From Backup (.zip)
+                  <input type="file" accept=".zip" style="display:none;" onchange="handleBackupRestore(event)">
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Security</h3></div>
+            <div class="card-body" style="max-width:480px;">
+              <form id="changePasswordForm" onsubmit="handleChangePasswordSubmit(event)">
+                <div class="form-group">
+                  <label class="form-label">Current Password</label>
+                  <input type="password" name="current_password" class="form-control" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">New Password</label>
+                  <input type="password" name="new_password" class="form-control" minlength="6" required>
+                </div>
+                <button type="submit" class="btn btn-secondary">Update Password</button>
+              </form>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODALS -->
+
+  <!-- Document Create / Edit Modal -->
+  <div class="modal-backdrop" id="documentModal">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title" id="documentModalTitle">Create Document</h3>
+        <button class="modal-close" onclick="closeModal('documentModal')">✕</button>
+      </div>
+      <form id="documentForm" onsubmit="handleDocumentSubmit(event)">
+        <div class="modal-body">
+          <input type="hidden" name="docId" id="docFormId">
+          <input type="hidden" name="docType" id="docFormDocType">
+
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label class="form-label">Customer *</label>
+              <select name="customerId" id="docCustomerSelect" class="form-control" required></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Document Number (Leave blank to auto-generate)</label>
+              <input type="text" name="documentNumber" id="docNumberInput" class="form-control" placeholder="e.g. INV-00001">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Currency</label>
+              <select name="currency" id="docCurrencySelect" class="form-control">
+                <option value="USD">USD ($)</option>
+                <option value="ZMW">ZMW (K)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+                <option value="ZAR">ZAR (R)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label class="form-label">Issue Date *</label>
+              <input type="date" name="issueDate" id="docIssueDate" class="form-control" required>
+            </div>
+            <div class="form-group" id="docDueDateWrap">
+              <label class="form-label">Due Date</label>
+              <input type="date" name="dueDate" id="docDueDate" class="form-control">
+            </div>
+            <div class="form-group" id="docExpiryDateWrap" style="display:none;">
+              <label class="form-label">Expiry / Valid Until</label>
+              <input type="date" name="expiryDate" id="docExpiryDate" class="form-control">
+            </div>
+            <div class="form-group">
+              <label class="form-label">PDF Template</label>
+              <select name="templateName" id="docTemplateSelect" class="form-control">
+                <option value="modern">Modern Clean</option>
+                <option value="classic">Classic Professional</option>
+                <option value="minimal">Minimal Pure</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Line Items Table -->
+          <div style="margin: 16px 0 8px; display:flex; justify-content:space-between; align-items:center;">
+            <label class="form-label" style="margin:0; font-size:15px;">Line Items</label>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addDocumentItemRow()">+ Add Row</button>
+          </div>
+
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Item / Description</th>
+                <th>Unit</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Disc %</th>
+                <th>Tax %</th>
+                <th style="text-align:right;">Total</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="docItemsTableBody"></tbody>
+          </table>
+
+          <!-- Adjustments & Totals -->
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:16px;">
+            <div style="flex:1; max-width:400px;">
+              <div class="form-group">
+                <label class="form-label">Notes</label>
+                <textarea name="notes" class="form-control" rows="2" placeholder="Thank you for your business..."></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Terms & Conditions</label>
+                <textarea name="terms" class="form-control" rows="2" placeholder="Payment due in 14 days..."></textarea>
+              </div>
+            </div>
+
+            <div class="summary-box">
+              <div class="summary-row">
+                <span>Subtotal:</span>
+                <span id="docSummarySubtotal">0.00</span>
+              </div>
+              <div class="summary-row">
+                <span>Discount:</span>
+                <span id="docSummaryDiscount">0.00</span>
+              </div>
+              <div class="summary-row">
+                <span>Tax:</span>
+                <span id="docSummaryTax">0.00</span>
+              </div>
+              <div class="summary-row total">
+                <span>Grand Total:</span>
+                <span id="docSummaryGrandTotal">0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('documentModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Document</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Record Payment Modal -->
+  <div class="modal-backdrop" id="recordPaymentModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Record Payment</h3>
+        <button class="modal-close" onclick="closeModal('recordPaymentModal')">✕</button>
+      </div>
+      <form id="recordPaymentForm" onsubmit="handlePaymentSubmit(event)">
+        <div class="modal-body">
+          <input type="hidden" name="docId" id="payModalDocId">
+          <p style="margin-bottom:16px; font-size:14px;">Recording payment for Invoice: <strong id="payModalDocNumber"></strong></p>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Amount (<span id="payModalCurrency"></span>) *</label>
+              <input type="number" step="0.01" min="0.01" name="amount" id="payModalAmount" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Payment Date *</label>
+              <input type="date" name="paymentDate" id="payModalDate" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Payment Method *</label>
+              <select name="paymentMethod" class="form-control">
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="Cash">Cash</option>
+                <option value="Mobile Money">Mobile Money</option>
+                <option value="Card">Credit/Debit Card</option>
+                <option value="Cheque">Cheque</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Reference / Transaction ID</label>
+              <input type="text" name="refNumber" class="form-control" placeholder="e.g. TRX-982173">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea name="notes" class="form-control" rows="2" placeholder="Payment received with thanks."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('recordPaymentModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Record Payment & Generate Receipt</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Draw Signature Canvas Modal -->
+  <div class="modal-backdrop" id="signatureModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Draw Digital Signature</h3>
+        <button class="modal-close" onclick="closeModal('signatureModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">Draw your signature using your mouse, trackpad, or touch screen.</p>
+        <div class="signature-pad-wrap">
+          <canvas id="signatureCanvas"></canvas>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="AppState.signaturePad.clear()">Clear Drawing</button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('signatureModal')">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveDrawnSignature()">Save Signature</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create API Key Modal -->
+  <div class="modal-backdrop" id="createApiKeyModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Generate REST API Key</h3>
+        <button class="modal-close" onclick="closeModal('createApiKeyModal')">✕</button>
+      </div>
+      <form id="createApiKeyForm" onsubmit="handleApiKeySubmit(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Key Name / Description *</label>
+            <input type="text" id="apiKeyName" class="form-control" placeholder="e.g. Hermes Agent" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Permission Scopes</label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px;">
+              <label><input type="checkbox" class="scope-checkbox" value="documents:read" checked> Read Documents</label>
+              <label><input type="checkbox" class="scope-checkbox" value="documents:write" checked> Create/Update Documents</label>
+              <label><input type="checkbox" class="scope-checkbox" value="customers:read" checked> Read Customers</label>
+              <label><input type="checkbox" class="scope-checkbox" value="customers:write" checked> Create/Update Customers</label>
+              <label><input type="checkbox" class="scope-checkbox" value="products:read" checked> Read Products</label>
+              <label><input type="checkbox" class="scope-checkbox" value="products:write" checked> Create/Update Products</label>
+              <label><input type="checkbox" class="scope-checkbox" value="payments:write" checked> Record Payments</label>
+              <label><input type="checkbox" class="scope-checkbox" value="admin" checked> Admin / Full Access</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('createApiKeyModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Generate Key</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Key Created Display Modal -->
+  <div class="modal-backdrop" id="keyCreatedModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">API Key Created</h3>
+        <button class="modal-close" onclick="closeModal('keyCreatedModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:14px; margin-bottom:12px;"><strong>Important:</strong> Copy this API key now. It will never be shown in full again.</p>
+        <div class="form-group">
+          <input type="text" id="newRawApiKeyDisplay" class="form-control" readonly style="font-family:monospace; background-color:#f1f5f9; font-weight:bold;">
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('newRawApiKeyDisplay').value); showToast('Copied to clipboard!');">Copy to Clipboard</button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="closeModal('keyCreatedModal')">I Have Saved the Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="/static/js/signature-pad.js"></script>
+  <script src="/static/js/app.js"></script>
+  <script src="/static/js/ui-enhancements.js"></script>
+</body>
+</html>
