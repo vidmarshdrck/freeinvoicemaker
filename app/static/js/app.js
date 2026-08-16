@@ -261,7 +261,7 @@ async function loadBusinessesList() {
 
 function openCreateBusinessModal() {
   const name = prompt('Enter Business Name:');
-  if (!name || !name.strip()) return;
+  if (!name || !name.trim()) return;
   const currency = prompt('Default Currency (e.g. USD, ZMW, EUR):', 'USD') || 'USD';
 
   apiCall('/api/v1/businesses', {
