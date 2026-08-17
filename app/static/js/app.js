@@ -291,6 +291,9 @@ function openCreateBusinessModal() {
   document.getElementById('businessModalTitle').innerText = 'Add Business';
   document.getElementById('businessFormSaveBtn').disabled = false;
   document.getElementById('businessFormSaveBtn').innerText = 'Save Business';
+  document.getElementById('businessFormSaveBtn').style.display = '';
+  // ensure inputs are editable
+  Array.from(form.querySelectorAll('input, textarea, select')).forEach(i => i.removeAttribute('disabled'));
   openModal('businessModal');
 }
 
@@ -580,6 +583,9 @@ function openCreateProductModal() {
   document.getElementById('productModalTitle').innerText = 'Add Product / Service';
   document.getElementById('productFormSaveBtn').disabled = false;
   document.getElementById('productFormSaveBtn').innerText = 'Save Item';
+  document.getElementById('productFormSaveBtn').style.display = '';
+  // ensure inputs are editable
+  Array.from(form.querySelectorAll('input, textarea')).forEach(i => i.removeAttribute('disabled'));
   openModal('productModal');
 }
 
