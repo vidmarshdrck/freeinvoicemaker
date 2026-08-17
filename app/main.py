@@ -1,7 +1,5 @@
-# Entry point for the Free Invoice Maker web application.
-# - Configures the FastAPI app, mounts static files/templates, and registers API routers.
-# - On startup it initializes the database schema and creates a default admin user and business if missing.
 import logging
+import os
 from pathlib import Path
 from contextlib import asynccontextmanager
 
@@ -182,17 +180,17 @@ templates = Jinja2Templates(directory=str(templates_path))
 # GUI Route
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def index_view(request: Request):
-    """Serve the single-page GUI for humans."""
-    # Render a minimal template substitution to avoid Jinja2 cache issues in some environments.
+    """Serve the single-page GUI for humans as a safe static HTML response to avoid Jinja2 caching issues."""
     index_file = templates_path / "index.html"
     if index_file.exists():
-        content = index_file.read_text(encoding='utf-8')
-        # Simple variable replacements used in the templates (safe for static SPA shell)
-        content = content.replace("{{ app_name }}", settings.APP_NAME)
-        content = content.replace("{{ app_version }}", settings.APP_VERSION)
-        return HTMLResponse(content)
+        try:
+            content = index_file.read_text(encoding="utf-8")
+            return HTMLResponse(content)
+        except Exception:
+            # Fallback to TemplateResponse if reading fails
+            pass
 
-    # Fallback to TemplateResponse if file is missing
+    # Fallback to templating (rare)
     return templates.TemplateResponse(
         "index.html",
         {
