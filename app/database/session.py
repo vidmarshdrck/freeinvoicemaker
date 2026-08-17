@@ -1,3 +1,6 @@
+# Database session configuration for SQLAlchemy.
+# - Creates engine and session factory bound to DATABASE_URL (defaults to local SQLite storage).
+# - Exposes get_db() as a FastAPI dependency that yields scoped DB sessions and ensures proper cleanup.
 import os
 from pathlib import Path
 from sqlalchemy import create_engine, event

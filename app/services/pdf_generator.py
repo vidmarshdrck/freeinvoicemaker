@@ -1,3 +1,6 @@
+# PDF generation utilities using ReportLab and Pillow.
+# - Builds printable PDFs for invoices, quotes, receipts using project templates and brand colors.
+# - Handles image scaling, pagination, and consistent footer/header rendering.
 import os
 import re
 from datetime import datetime

@@ -1,0 +1,16 @@
+[Unit]
+Description=Free Invoice Maker (FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=shadrickvidmar
+Group=shadrickvidmar
+WorkingDirectory=/home/shadrickvidmar/Documents/vidmarholdings/Businesses/vidmar.ai/assets/apps/freeinvoicemaker
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/shadrickvidmar/Documents/vidmarholdings/Businesses/vidmar.ai/assets/apps/freeinvoicemaker/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1 --log-level info
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -20,3 +20,10 @@
   .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:40}
   .main-layout{margin-left:var(--sidebar-collapsed-width)}
 }
+
+/* Accessibility: skip link and focus outlines */
+.skip-link{position:absolute;left:8px;top:8px;background:#fff;color:#0f172a;padding:6px 10px;border-radius:6px;z-index:60;transform:translateY(-120%);transition:transform .18s ease}
+.skip-link:focus{transform:translateY(0)}
+
+:focus-visible{outline:3px solid rgba(37,99,235,0.35);outline-offset:2px}
+button:focus, a:focus, input:focus, select:focus, textarea:focus{outline:3px solid rgba(37,99,235,0.15);outline-offset:2px}
