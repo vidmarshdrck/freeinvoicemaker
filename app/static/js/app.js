@@ -77,6 +77,31 @@ function closeModal(modalId) {
   if (m) m.classList.remove('active');
 }
 
+// Generic confirmation helper that returns a Promise resolving to true/false
+function showConfirm(title, message, confirmText='Confirm') {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('confirmModal');
+    if (!modal) { resolve(confirm(message)); return; }
+    document.getElementById('confirmModalTitle').innerText = title || 'Confirm';
+    document.getElementById('confirmModalMessage').innerText = message || 'Are you sure?';
+    const btn = document.getElementById('confirmModalConfirmBtn');
+
+    function cleanup() {
+      btn.removeEventListener('click', onConfirm);
+    }
+
+    function onConfirm() {
+      cleanup();
+      closeModal('confirmModal');
+      resolve(true);
+    }
+
+    btn.addEventListener('click', onConfirm);
+    openModal('confirmModal');
+    // If the user closes the modal via close button, resolve false when it happens by listening for focus/active state not available here.
+  });
+}
+
 // App Initialization
 document.addEventListener('DOMContentLoaded', async () => {
   initNavigation();
@@ -373,42 +398,47 @@ async function loadCustomers(search = '') {
 }
 
 function openCreateCustomerModal() {
-  const name = prompt('Customer / Company Name:');
-  if (!name) return;
-  const email = prompt('Customer Email (optional):') || '';
-  const phone = prompt('Customer Phone (optional):') || '';
-
-  apiCall('/api/v1/customers', {
-    method: 'POST',
-    body: JSON.stringify({
-      business_id: AppState.activeBusinessId,
-      display_name: name,
-      email: email || null,
-      phone: phone || null,
-    }),
-  })
-    .then(() => {
-      showToast('Customer created!');
-      loadCustomers();
-    })
-    .catch((err) => showToast(err.message, 'error'));
+  // Reset and open customer modal for create
+  const form = document.getElementById('customerForm');
+  form.reset();
+  document.getElementById('customerFormId').value = '';
+  document.getElementById('customerModalTitle').innerText = 'Add Customer';
+  const saveBtn = document.getElementById('customerFormSaveBtn');
+  saveBtn.disabled = false; saveBtn.innerText = 'Save Customer';
+  // ensure inputs are editable
+  Array.from(form.querySelectorAll('input, textarea')).forEach(i => i.removeAttribute('disabled'));
+  document.getElementById('customerFormSaveBtn').style.display = '';
+  openModal('customerModal');
 }
 
 async function viewCustomerDetail(id) {
   try {
     const res = await apiCall(`/api/v1/customers/${id}`);
     const c = res.data;
-    const s = c.summary || {};
-    alert(
-      `Customer: ${c.display_name}\nEmail: ${c.email || '-'}\nTotal Invoiced: $${s.total_invoiced || '0.00'}\nTotal Paid: $${s.total_paid || '0.00'}\nOutstanding: $${s.outstanding_amount || '0.00'}`
-    );
+    // populate form
+    document.getElementById('customerFormId').value = c.id;
+    document.getElementById('customerDisplayName').value = c.display_name || '';
+    document.getElementById('customerCompany').value = c.company_name || '';
+    document.getElementById('customerEmail').value = c.email || '';
+    document.getElementById('customerPhone').value = c.phone || '';
+    document.getElementById('customerAddress').value = c.address || '';
+    document.getElementById('customerCity').value = c.city || '';
+    document.getElementById('customerCountry').value = c.country || '';
+    document.getElementById('customerTaxNumber').value = c.tax_number || '';
+    document.getElementById('customerNotes').value = c.notes || '';
+    document.getElementById('customerModalTitle').innerText = 'View Customer';
+    // disable inputs for view-only
+    const form = document.getElementById('customerForm');
+    Array.from(form.querySelectorAll('input, textarea')).forEach(i => i.setAttribute('disabled', 'disabled'));
+    document.getElementById('customerFormSaveBtn').style.display = 'none';
+    openModal('customerModal');
   } catch (err) {
     showToast(err.message, 'error');
   }
 }
 
 async function deleteCustomer(id) {
-  if (!confirm('Are you sure you want to delete this customer?')) return;
+  if (!(await showConfirm('Delete Customer', 'Are you sure you want to delete this customer?', 'Delete'))) return;
   try {
     await apiCall(`/api/v1/customers/${id}`, { method: 'DELETE' });
     showToast('Customer deleted.');
@@ -438,6 +468,41 @@ async function importCustomersCSV(input) {
     showToast(err.message, 'error');
   }
 }
+async function handleCustomerSubmit(e) {
+  e.preventDefault();
+  const form = document.getElementById('customerForm');
+  const saveBtn = document.getElementById('customerFormSaveBtn');
+  saveBtn.disabled = true; saveBtn.innerText = 'Saving...';
+  const id = document.getElementById('customerFormId').value || null;
+  const payload = {
+    business_id: AppState.activeBusinessId,
+    display_name: document.getElementById('customerDisplayName').value.trim(),
+    company_name: document.getElementById('customerCompany').value.trim() || null,
+    email: document.getElementById('customerEmail').value.trim() || null,
+    phone: document.getElementById('customerPhone').value.trim() || null,
+    address: document.getElementById('customerAddress').value.trim() || null,
+    city: document.getElementById('customerCity').value.trim() || null,
+    country: document.getElementById('customerCountry').value.trim() || null,
+    tax_number: document.getElementById('customerTaxNumber').value.trim() || null,
+    notes: document.getElementById('customerNotes').value.trim() || null,
+  };
+  try {
+    if (id) {
+      await apiCall(`/api/v1/customers/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      showToast('Customer updated successfully');
+    } else {
+      await apiCall('/api/v1/customers', { method: 'POST', body: JSON.stringify(payload) });
+      showToast('Customer created successfully');
+    }
+    closeModal('customerModal');
+    await loadCustomers();
+  } catch (err) {
+    showToast(err.message || 'Failed to save customer', 'error');
+  } finally {
+    saveBtn.disabled = false; saveBtn.innerText = 'Save Customer';
+  }
+}
+
 
 // Products
 async function loadProducts(search = '') {
@@ -843,7 +908,7 @@ async function openNewDocumentModal(docType = 'invoice') {
   }
 
   if (AppState.customersCache.length === 0) {
-    alert('Please create at least one customer first.');
+    showToast('Please create at least one customer first.', 'error');
     openCreateCustomerModal();
     return;
   }
@@ -1067,9 +1132,7 @@ async function handleChangePasswordSubmit(e) {
 // Backup & Settings
 async function triggerBackupExport() {
   try {
-    const res = await fetch('/api/v1/backups/export', {
-      headers: { Authorization: `Bearer ${AppState.authToken}` },
-    });
+    const res = await fetch('/api/v1/backups/export', { headers: { Authorization: `Bearer ${AppState.authToken}` } });
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
