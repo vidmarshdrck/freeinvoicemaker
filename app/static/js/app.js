@@ -295,7 +295,7 @@ function openCreateBusinessModal() {
 }
 
 async function deleteBusiness(id) {
-  if (!confirm('Are you sure you want to delete this business profile?')) return;
+  if (!(await showConfirm('Delete Business','Are you sure you want to delete this business profile?','Delete'))) return;
   try {
     await apiCall(`/api/v1/businesses/${id}`, { method: 'DELETE' });
     showToast('Business profile deleted.');
@@ -584,7 +584,7 @@ function openCreateProductModal() {
 }
 
 async function deleteProduct(id) {
-  if (!confirm('Are you sure you want to delete this item?')) return;
+  if (!(await showConfirm('Delete Item','Are you sure you want to delete this item?','Delete'))) return;
   try {
     await apiCall(`/api/v1/products/${id}`, { method: 'DELETE' });
     showToast('Product deleted.');
@@ -847,7 +847,7 @@ async function loadSettings() {
 
 // Conversion helper
 async function convertDocToInvoice(id, routePrefix) {
-  if (!confirm('Convert this document into a new Invoice?')) return;
+  if (!(await showConfirm('Convert Document','Convert this document into a new Invoice?','Convert'))) return;
   try {
     const res = await apiCall(`/api/v1/${routePrefix}/${id}/convert-to-invoice`, {
       method: 'POST',
@@ -861,7 +861,7 @@ async function convertDocToInvoice(id, routePrefix) {
 }
 
 async function deleteDocumentRow(id) {
-  if (!confirm('Are you sure you want to delete this document?')) return;
+  if (!(await showConfirm('Delete Document','Are you sure you want to delete this document?','Delete'))) return;
   try {
     await apiCall(`/api/v1/documents/${id}`, { method: 'DELETE' });
     showToast('Document deleted.');
@@ -872,7 +872,7 @@ async function deleteDocumentRow(id) {
 }
 
 async function deletePayment(id) {
-  if (!confirm('Are you sure you want to delete this payment receipt?')) return;
+  if (!(await showConfirm('Delete Payment','Are you sure you want to delete this payment receipt?','Delete'))) return;
   try {
     await apiCall(`/api/v1/payments/${id}`, { method: 'DELETE' });
     showToast('Payment deleted.');
@@ -1118,7 +1118,7 @@ async function handleApiKeySubmit(e) {
 }
 
 async function revokeApiKey(id) {
-  if (!confirm('Are you sure you want to revoke and delete this API key?')) return;
+  if (!(await showConfirm('Revoke API Key','Are you sure you want to revoke and delete this API key?','Revoke'))) return;
   try {
     await apiCall(`/api/v1/api-keys/${id}`, { method: 'DELETE' });
     showToast('API key revoked.');
@@ -1203,7 +1203,7 @@ async function handleBackupRestore(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  if (!confirm('Restoring this backup will replace current data. Continue?')) return;
+  if (!(await showConfirm('Restore Backup','Restoring this backup will replace current data. Continue?','Restore'))) return;
 
   const formData = new FormData();
   formData.append('file', file);
