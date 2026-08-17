@@ -285,20 +285,13 @@ async function loadBusinessesList() {
 }
 
 function openCreateBusinessModal() {
-  const name = prompt('Enter Business Name:');
-  if (!name || !name.trim()) return;
-  const currency = prompt('Default Currency (e.g. USD, ZMW, EUR):', 'USD') || 'USD';
-
-  apiCall('/api/v1/businesses', {
-    method: 'POST',
-    body: JSON.stringify({ name: name.trim(), default_currency: currency.trim() }),
-  })
-    .then(async () => {
-      showToast('Business profile created!');
-      await loadBusinesses();
-      await loadBusinessesList();
-    })
-    .catch((err) => showToast(err.message, 'error'));
+  const form = document.getElementById('businessForm');
+  form.reset();
+  document.getElementById('businessFormId').value = '';
+  document.getElementById('businessModalTitle').innerText = 'Add Business';
+  document.getElementById('businessFormSaveBtn').disabled = false;
+  document.getElementById('businessFormSaveBtn').innerText = 'Save Business';
+  openModal('businessModal');
 }
 
 async function deleteBusiness(id) {
@@ -312,6 +305,44 @@ async function deleteBusiness(id) {
     showToast(err.message, 'error');
   }
 }
+async function handleBusinessSubmit(e) {
+  e.preventDefault();
+  const saveBtn = document.getElementById('businessFormSaveBtn');
+  saveBtn.disabled = true; saveBtn.innerText = 'Saving...';
+  const id = document.getElementById('businessFormId').value || null;
+  const form = document.getElementById('businessForm');
+  const payload = {
+    name: document.getElementById('businessName').value.trim(),
+    trading_name: document.getElementById('businessTradingName').value.trim() || null,
+    email: document.getElementById('businessEmail').value.trim() || null,
+    phone: document.getElementById('businessPhone').value.trim() || null,
+    website: document.getElementById('businessWebsite').value.trim() || null,
+    address: document.getElementById('businessAddress').value.trim() || null,
+    city: document.getElementById('businessCity').value.trim() || null,
+    country: document.getElementById('businessCountry').value.trim() || null,
+    default_currency: document.getElementById('businessCurrency').value || 'USD',
+    registration_number: document.getElementById('businessRegistration').value.trim() || null,
+    tax_number: document.getElementById('businessTaxNumber').value.trim() || null,
+    payment_info: document.getElementById('businessPaymentInfo').value.trim() || null,
+  };
+  try {
+    if (id) {
+      await apiCall(`/api/v1/businesses/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      showToast('Business updated successfully');
+    } else {
+      await apiCall('/api/v1/businesses', { method: 'POST', body: JSON.stringify(payload) });
+      showToast('Business created successfully');
+    }
+    closeModal('businessModal');
+    await loadBusinesses();
+    await loadBusinessesList();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    saveBtn.disabled = false; saveBtn.innerText = 'Save Business';
+  }
+}
+
 
 // Dashboard
 async function loadDashboard() {
@@ -543,25 +574,13 @@ async function loadProducts(search = '') {
 }
 
 function openCreateProductModal() {
-  const name = prompt('Product / Service Name:');
-  if (!name) return;
-  const priceStr = prompt('Price (e.g. 150.00):', '100.00') || '0.00';
-  const unit = prompt('Unit (e.g. unit, hrs, items):', 'unit') || 'unit';
-
-  apiCall('/api/v1/products', {
-    method: 'POST',
-    body: JSON.stringify({
-      business_id: AppState.activeBusinessId,
-      name: name,
-      price: parseFloat(priceStr) || 0,
-      unit: unit,
-    }),
-  })
-    .then(() => {
-      showToast('Product created!');
-      loadProducts();
-    })
-    .catch((err) => showToast(err.message, 'error'));
+  const form = document.getElementById('productForm');
+  form.reset();
+  document.getElementById('productFormId').value = '';
+  document.getElementById('productModalTitle').innerText = 'Add Product / Service';
+  document.getElementById('productFormSaveBtn').disabled = false;
+  document.getElementById('productFormSaveBtn').innerText = 'Save Item';
+  openModal('productModal');
 }
 
 async function deleteProduct(id) {
@@ -595,6 +614,39 @@ async function importProductsCSV(input) {
     showToast(err.message, 'error');
   }
 }
+async function handleProductSubmit(e) {
+  e.preventDefault();
+  const saveBtn = document.getElementById('productFormSaveBtn');
+  saveBtn.disabled = true; saveBtn.innerText = 'Saving...';
+  const id = document.getElementById('productFormId').value || null;
+  const payload = {
+    business_id: AppState.activeBusinessId,
+    name: document.getElementById('productName').value.trim(),
+    sku: document.getElementById('productSku').value.trim() || null,
+    unit: document.getElementById('productUnit').value || 'unit',
+    currency: document.getElementById('productCurrency').value || 'USD',
+    price: parseFloat(document.getElementById('productPrice').value) || 0,
+    tax_rate: parseFloat(document.getElementById('productTax').value) || 0,
+    type: document.getElementById('productType').value || 'product',
+    description: document.getElementById('productDescription').value.trim() || null,
+  };
+  try {
+    if (id) {
+      await apiCall(`/api/v1/products/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      showToast('Product updated successfully');
+    } else {
+      await apiCall('/api/v1/products', { method: 'POST', body: JSON.stringify(payload) });
+      showToast('Product created successfully');
+    }
+    closeModal('productModal');
+    await loadProducts();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    saveBtn.disabled = false; saveBtn.innerText = 'Save Item';
+  }
+}
+
 
 // Invoices
 async function loadInvoices(statusFilter = '') {
