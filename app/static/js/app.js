@@ -199,7 +199,7 @@ async function checkAuthStatus() {
       const loginRes = await apiCall('/api/v1/auth/login', {
         method: 'POST',
         body: JSON.stringify({
-          email: 'admin@freeinvoicemaker.local',
+          email: 'admin@freeinvoicemaker.com',
           password: 'admin123',
         }),
       });
@@ -326,16 +326,32 @@ async function handleBusinessSubmit(e) {
     default_currency: document.getElementById('businessCurrency').value || 'USD',
     registration_number: document.getElementById('businessRegistration').value.trim() || null,
     tax_number: document.getElementById('businessTaxNumber').value.trim() || null,
-    payment_info: document.getElementById('businessPaymentInfo').value.trim() || null,
+    payment_instructions: document.getElementById('businessPaymentInfo').value.trim() || null,
   };
   try {
+    let savedBusiness;
     if (id) {
-      await apiCall(`/api/v1/businesses/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      const response = await apiCall(`/api/v1/businesses/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      savedBusiness = response.data;
       showToast('Business updated successfully');
     } else {
-      await apiCall('/api/v1/businesses', { method: 'POST', body: JSON.stringify(payload) });
+      const response = await apiCall('/api/v1/businesses', { method: 'POST', body: JSON.stringify(payload) });
+      savedBusiness = response.data;
+      document.getElementById('businessFormId').value = savedBusiness.id;
       showToast('Business created successfully');
     }
+
+    const logo = document.getElementById('businessLogo').files[0];
+    if (logo) {
+      const logoForm = new FormData();
+      logoForm.append('file', logo);
+      await apiCall(`/api/v1/businesses/${savedBusiness.id}/logo`, {
+        method: 'POST',
+        body: logoForm,
+      });
+      showToast('Business logo uploaded successfully');
+    }
+
     closeModal('businessModal');
     await loadBusinesses();
     await loadBusinessesList();

@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: Union[str, List[str]] = ["*"]
 
     # Default admin credentials
-    DEFAULT_ADMIN_EMAIL: str = "admin@freeinvoicemaker.local"
+    DEFAULT_ADMIN_EMAIL: str = "admin@freeinvoicemaker.com"
     DEFAULT_ADMIN_PASSWORD: str = "admin123"
 
     @field_validator("CORS_ORIGINS", mode="before")

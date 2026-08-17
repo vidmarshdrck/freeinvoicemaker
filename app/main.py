@@ -25,6 +25,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
 logger = logging.getLogger("free_invoice_maker")
+LEGACY_DEFAULT_ADMIN_EMAIL = "admin@freeinvoicemaker.local"
 
 
 def init_database():
@@ -36,6 +37,14 @@ def init_database():
     try:
         # Check if admin user exists
         admin = db.query(User).filter(User.email == settings.DEFAULT_ADMIN_EMAIL).first()
+        if not admin and settings.DEFAULT_ADMIN_EMAIL != LEGACY_DEFAULT_ADMIN_EMAIL:
+            admin = db.query(User).filter(User.email == LEGACY_DEFAULT_ADMIN_EMAIL).first()
+            if admin:
+                admin.email = settings.DEFAULT_ADMIN_EMAIL
+                db.commit()
+                db.refresh(admin)
+                logger.info("Migrated the legacy default administrator email.")
+
         if not admin:
             admin = User(
                 email=settings.DEFAULT_ADMIN_EMAIL,
