@@ -688,6 +688,20 @@ body {
   justify-content: flex-end;
   gap: 12px;
   background-color: #f8fafc;
+  flex-shrink: 0;
+}
+
+/* Form inside modal needs flex layout to properly position footer */
+.modal-dialog form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.modal-dialog form .modal-body {
+  overflow-y: auto;
+  flex: 1;
 }
 
 /* Signature Pad Canvas */
