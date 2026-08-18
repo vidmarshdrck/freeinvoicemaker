@@ -31,14 +31,13 @@ def _open_browser(host: str, port: int) -> None:
 
     url = f"http://{host}:{port}"
     for _ in range(30):
-        time.sleep(1)
         try:
             r = httpx.get(url, timeout=2)
             if r.status_code < 500:
                 webbrowser.open(url)
                 return
         except Exception:
-            pass
+            time.sleep(1)
     # Fallback: open anyway after timeout
     webbrowser.open(url)
 
