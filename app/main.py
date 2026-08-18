@@ -8,7 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -183,28 +183,19 @@ templates_path = base_dir / "templates"
 if static_path.exists():
     app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
-templates = Jinja2Templates(directory=str(templates_path))
+jinja_env = Environment(
+    loader=FileSystemLoader(str(templates_path)),
+    autoescape=select_autoescape(["html", "xml"]),
+)
 
 
 # GUI Route
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def index_view(request: Request):
-    """Serve the single-page GUI for humans as a safe static HTML response to avoid Jinja2 caching issues."""
-    index_file = templates_path / "index.html"
-    if index_file.exists():
-        try:
-            content = index_file.read_text(encoding="utf-8")
-            return HTMLResponse(content)
-        except Exception:
-            # Fallback to TemplateResponse if reading fails
-            pass
-
-    # Fallback to templating (rare)
-    return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
-            "app_name": settings.APP_NAME,
-            "app_version": settings.APP_VERSION,
-        },
+    """Serve the single-page GUI for humans."""
+    html = jinja_env.get_template("index.html").render(
+        request=request,
+        app_name=settings.APP_NAME,
+        app_version=settings.APP_VERSION,
     )
+    return HTMLResponse(html)
