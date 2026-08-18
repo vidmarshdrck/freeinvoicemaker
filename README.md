@@ -18,6 +18,19 @@ with SQLite storage by default.
 - API documentation at `/api/docs`
 - Local SQLite persistence, uploads, and generated document storage
 
+## Download for Windows
+
+If you just want to run Free Invoice Maker on Windows **without installing
+Python or using the terminal**, download the latest pre-built `.zip` from the
+[Releases page](../../releases/latest).
+
+1. Download **FreeInvoiceMaker-windows.zip** from the latest release.
+2. Extract the ZIP to a folder of your choice.
+3. Double-click **FreeInvoiceMaker.exe** inside the extracted folder.
+4. Your browser will open automatically at `http://127.0.0.1:8000`.
+
+To stop the server, close the console window.
+
 ## Quick start
 
 ```bash
@@ -88,6 +101,9 @@ app/
 storage/         SQLite database, uploads, and generated documents
 systemd/         Linux service definition
 scripts/         Service installation helper
+launcher.py      Windows executable entry point
+freeinvoicemaker.spec  PyInstaller build specification
+.github/workflows/     CI/CD workflows (Windows exe build)
 ```
 
 ## API
