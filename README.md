@@ -101,6 +101,9 @@ app/
 storage/         SQLite database, uploads, and generated documents
 systemd/         Linux service definition
 scripts/         Service installation helper
+launcher.py      Windows executable entry point
+freeinvoicemaker.spec  PyInstaller build specification
+.github/workflows/     CI/CD workflows (Windows exe build)
 ```
 
 ## API

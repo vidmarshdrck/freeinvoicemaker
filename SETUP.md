@@ -36,7 +36,21 @@ The application creates its SQLite database and the first administrator account
 on first startup. Keep the `storage/` directory backed up because it contains
 the database, uploads, and generated documents.
 
-## Windows
+## Windows (no-install executable)
+
+If you prefer not to install Python or use the terminal, download the
+pre-built executable from the
+[Releases page](https://github.com/vidmarshdrck/freeinvoicemaker/releases/latest):
+
+1. Download **FreeInvoiceMaker-windows.zip** from the latest release.
+2. Extract the ZIP to a folder of your choice.
+3. Double-click **FreeInvoiceMaker.exe** inside the extracted folder.
+4. Your default browser will open automatically at `http://127.0.0.1:8000`.
+5. To stop the server, close the console window.
+
+The executable bundles Python and all dependencies — nothing else to install.
+
+## Windows (from source)
 
 Open PowerShell in the project directory:
 
