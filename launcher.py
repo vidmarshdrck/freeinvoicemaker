@@ -1,9 +1,9 @@
 """
-Launcher for the Free Invoice Maker desktop executable.
+Launcher for Free Invoice Maker.
 
 Starts the Uvicorn server and opens the default browser.
-Designed to be the PyInstaller entry point so Windows users can
-double-click the .exe to run the application.
+Used as the ``fim`` CLI entry point (via ``pip install -e .``)
+and as the PyInstaller entry point for the Windows executable.
 """
 
 import multiprocessing

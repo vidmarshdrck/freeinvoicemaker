@@ -87,6 +87,23 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 If Python 3.11 is installed as `python3`, replace `python3.11` in the first
 command. Browse to <http://127.0.0.1:8000> after the server starts.
 
+### Quick-launch with the `fim` command
+
+After activating the virtual environment, install the package in editable mode:
+
+```bash
+pip install -e .
+```
+
+Now you can start the application from any directory by typing:
+
+```bash
+fim
+```
+
+This launches the server at <http://127.0.0.1:8000> and opens your default
+browser automatically.
+
 ## Docker
 
 Build the image:
