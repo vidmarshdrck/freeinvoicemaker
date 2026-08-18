@@ -3,24 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ app_name }} - Local-First Open Source Invoicing</title>
-  <meta name="description" content="Free, self-hostable, local-first invoice, quotation, receipt, and document maker with a powerful REST API for AI agents and humans.">
+  <title>FIM — {{ app_name }}</title>
+  <meta name="description" content="FIM is a free, self-hostable, local-first invoice, quotation, receipt, and document maker.">
   <meta name="theme-color" content="#1a1814">
-  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="FIM">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="icon" type="image/svg+xml" href="/static/img/fim-logo.svg">
+  <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
+  <link rel="manifest" href="/static/manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/ui-enhancements.css">
+  <link rel="stylesheet" href="/static/css/mobile.css">
 </head>
-<body>
+<body class="app-mode-mobile">
   <a href="#content" class="skip-link">Skip to content</a>
 
   <div id="loginGate" class="login-gate" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
     <form class="login-card" id="loginForm" onsubmit="handleLoginSubmit(event)">
-      <div class="login-kicker">Free Invoice Maker</div>
+      <div class="login-brand">
+        <img class="login-logo" src="/static/img/fim-icon-192.png" width="56" height="56" alt="FIM">
+        <div class="login-kicker">FIM</div>
+      </div>
       <h1 class="login-title" id="loginTitle">Sign in to your ledger</h1>
-      <p class="login-copy">Create invoices, quotations, and receipts locally. Your data stays on this machine.</p>
+      <p class="login-copy">Create invoices, quotations, and receipts on your phone or desktop. Your data stays on this machine.</p>
       <div id="loginError" class="login-error" role="alert"></div>
       <div class="form-group">
         <label class="form-label" for="loginEmail">Email</label>
@@ -36,14 +45,134 @@
 
   <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
 
+  <div id="phoneStage" class="phone-stage">
+    <div class="phone-device">
+      <div class="phone-screen">
+        <div id="mobileApp" class="mobile-app">
+          <header class="m-header">
+            <img class="m-logo" src="/static/img/fim-logo.svg" width="36" height="36" alt="FIM">
+            <div class="m-brand">
+              <strong>FIM</strong>
+              <span id="mBusinessName">Your ledger</span>
+            </div>
+            <button type="button" class="m-icon-btn" id="mMoreQuick" onclick="document.querySelector('[data-tab=more]').click()" aria-label="More">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+            </button>
+          </header>
+
+          <div class="m-screens">
+            <section id="m-screen-home" class="m-screen active">
+              <div class="m-hello">
+                <h2>Hello, <span id="mHelloName">there</span></h2>
+                <p>Your FIM ledger at a glance.</p>
+              </div>
+              <div id="mHomeMetrics" class="m-metrics"></div>
+              <div class="m-section-label"><span>Recent</span></div>
+              <div id="mHomeRecent"></div>
+            </section>
+
+            <section id="m-screen-invoices" class="m-screen">
+              <input id="mInvoiceSearch" class="m-search" type="search" placeholder="Search invoices">
+              <div class="m-chips">
+                <button type="button" class="m-chip active" data-status="">All</button>
+                <button type="button" class="m-chip" data-status="draft">Draft</button>
+                <button type="button" class="m-chip" data-status="sent">Sent</button>
+                <button type="button" class="m-chip" data-status="paid">Paid</button>
+                <button type="button" class="m-chip" data-status="overdue">Overdue</button>
+              </div>
+              <div id="mInvoiceList"></div>
+            </section>
+
+            <section id="m-screen-people" class="m-screen">
+              <div class="m-seg">
+                <button type="button" class="active" data-people="customers">Customers</button>
+                <button type="button" data-people="products">Items</button>
+              </div>
+              <div id="mPeopleList"></div>
+              <div class="m-card-actions" style="margin-top:8px">
+                <button type="button" class="btn btn-primary" onclick="document.querySelector('[data-people].active')?.dataset.people === 'products' ? openCreateProductModal() : openCreateCustomerModal()">Add</button>
+              </div>
+            </section>
+
+            <section id="m-screen-more" class="m-screen">
+              <div id="mMoreMenu" class="m-menu">
+                <button type="button" class="m-menu-item" data-more="quotations">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  Quotations
+                </button>
+                <button type="button" class="m-menu-item" data-more="estimates">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  Estimates
+                </button>
+                <button type="button" class="m-menu-item" data-more="receipts">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+                  Receipts
+                </button>
+                <button type="button" class="m-menu-item" data-more="businesses">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg>
+                  Business profiles
+                </button>
+                <button type="button" class="m-menu-item" data-more="keys">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7.5" cy="16.5" r="3.5"/><path d="m15 5 4 4"/></svg>
+                  API keys
+                </button>
+                <button type="button" class="m-menu-item" data-more="settings">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>
+                  Backups & settings
+                </button>
+                <button type="button" class="m-menu-item danger" onclick="handleLogout()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  Sign out
+                </button>
+              </div>
+              <div id="mMoreListWrap" hidden>
+                <div class="m-section-label">
+                  <button type="button" class="m-text-btn" id="mMoreBack">Back</button>
+                  <span id="mMoreTitle">More</span>
+                </div>
+                <div id="mMoreList"></div>
+              </div>
+            </section>
+          </div>
+
+          <button type="button" class="m-fab" id="mFab" aria-label="New invoice">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+
+          <nav class="m-tabbar" aria-label="FIM">
+            <button type="button" class="m-tab active" data-tab="home">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+              Home
+            </button>
+            <button type="button" class="m-tab" data-tab="invoices">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+              Invoices
+            </button>
+            <button type="button" class="m-tab" data-tab="people">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              People
+            </button>
+            <button type="button" class="m-tab" data-tab="more">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              More
+            </button>
+          </nav>
+        </div>
+      </div>
+    </div>
+    <button type="button" class="stage-switch" id="useDesktopWorkspace">Desktop workspace</button>
+  </div>
+
   <div class="app-container">
     <!-- Sidebar Navigation -->
     <aside class="sidebar" id="appSidebar" role="navigation" aria-label="Primary sidebar">
       <div class="sidebar-header">
-        <div class="logo-badge">FIM</div>
+        <div class="logo-badge" aria-hidden="true">
+          <img class="logo-mark" src="/static/img/fim-logo.svg" width="38" height="38" alt="">
+        </div>
         <div class="app-title">
-          <h1>Invoice Maker</h1>
-          <div class="version-tag">v{{ app_version }} • Open Source</div>
+          <h1>FIM</h1>
+          <div class="version-tag">v{{ app_version }} • Invoice Maker</div>
         </div>
       </div>
 
@@ -128,6 +257,10 @@
 
         <div class="topbar-actions">
           <input class="quick-search" id="topQuickSearch" type="search" placeholder="Search invoices..." aria-label="Quick search invoices" oninput="handleQuickSearch(this.value)" />
+          <button type="button" class="btn btn-secondary btn-sm desktop-mobile-btn" id="openMobileApp">
+            <img src="/static/img/fim-logo.svg" alt="">
+            FIM Mobile
+          </button>
           <a href="/api/docs" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
             API Docs
@@ -1045,5 +1178,6 @@
   <script src="/static/js/signature-pad.js"></script>
   <script src="/static/js/app.js"></script>
   <script src="/static/js/ui-enhancements.js"></script>
+  <script src="/static/js/mobile.js"></script>
 </body>
 </html>

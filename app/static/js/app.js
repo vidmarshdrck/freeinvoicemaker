@@ -15,10 +15,10 @@ const AppState = {
 
 function escapeHtml(value) {
   return String(value ?? '')
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
 
@@ -45,6 +45,7 @@ function setAuthedChrome(user) {
   if (nameEl) nameEl.textContent = name;
   if (emailEl) emailEl.textContent = email;
   if (avatarEl) avatarEl.textContent = (name || 'A').trim().charAt(0).toUpperCase();
+  if (window.FIMMobile) window.FIMMobile.notify();
 }
 
 function showLoginGate(message) {
@@ -363,6 +364,7 @@ async function loadBusinesses() {
       }
       select.value = AppState.activeBusinessId;
     }
+    if (window.FIMMobile) window.FIMMobile.notify();
   } catch (err) {
     console.error('Failed to load businesses:', err);
   }
@@ -523,6 +525,8 @@ async function loadDashboard() {
   try {
     const res = await apiCall(`/api/v1/stats/dashboard?business_id=${AppState.activeBusinessId}`);
     const data = res.data;
+    AppState.lastDashboard = data;
+    if (window.FIMMobile) window.FIMMobile.notify();
 
     document.getElementById('statTotalInvoiced').innerText = formatMoney(data.total_invoiced, data.currency);
     document.getElementById('statTotalPaid').innerText = formatMoney(data.total_paid, data.currency);
@@ -572,6 +576,7 @@ async function loadCustomers(search = '') {
     const qParam = search ? `&q=${encodeURIComponent(search)}` : '';
     const res = await apiCall(`/api/v1/customers?business_id=${AppState.activeBusinessId}${qParam}`);
     AppState.customersCache = res.data || [];
+    if (window.FIMMobile) window.FIMMobile.notify();
 
     if (AppState.customersCache.length === 0) {
       container.innerHTML = emptyRow(6, 'No customers yet', 'Add a client to start creating invoices.');
@@ -725,6 +730,7 @@ async function loadProducts(search = '') {
     const qParam = search ? `&q=${encodeURIComponent(search)}` : '';
     const res = await apiCall(`/api/v1/products?business_id=${AppState.activeBusinessId}${qParam}`);
     AppState.productsCache = res.data || [];
+    if (window.FIMMobile) window.FIMMobile.notify();
 
     if (AppState.productsCache.length === 0) {
       container.innerHTML = emptyRow(6, 'No items yet', 'Add products or services to reuse on invoices.');
@@ -875,6 +881,8 @@ async function loadInvoices() {
     if (search) params.set('q', search);
     const res = await apiCall(`/api/v1/invoices?${params.toString()}`);
     const list = res.data || [];
+    AppState.lastInvoices = list;
+    if (window.FIMMobile) window.FIMMobile.notify();
 
     if (list.length === 0) {
       container.innerHTML = emptyRow(7, 'No invoices found', 'Create an invoice or adjust your filters.');
@@ -917,6 +925,8 @@ async function loadQuotations() {
   try {
     const res = await apiCall(`/api/v1/quotations?business_id=${AppState.activeBusinessId}`);
     const list = res.data || [];
+    AppState.lastQuotations = list;
+    if (window.FIMMobile) window.FIMMobile.notify();
 
     if (list.length === 0) {
       container.innerHTML = emptyRow(6, 'No quotations yet', 'Create a quotation and convert it to an invoice when accepted.');
@@ -958,6 +968,8 @@ async function loadEstimates() {
   try {
     const res = await apiCall(`/api/v1/estimates?business_id=${AppState.activeBusinessId}`);
     const list = res.data || [];
+    AppState.lastEstimates = list;
+    if (window.FIMMobile) window.FIMMobile.notify();
 
     if (list.length === 0) {
       container.innerHTML = emptyRow(6, 'No estimates yet', 'Draft an estimate and convert it once the client approves.');
@@ -999,6 +1011,8 @@ async function loadReceipts() {
   try {
     const res = await apiCall(`/api/v1/receipts?business_id=${AppState.activeBusinessId}`);
     const list = res.data || [];
+    AppState.lastReceipts = list;
+    if (window.FIMMobile) window.FIMMobile.notify();
 
     if (list.length === 0) {
       container.innerHTML = emptyRow(6, 'No receipts yet', 'Record a payment on an invoice to generate a receipt.');
@@ -1037,6 +1051,8 @@ async function loadApiKeys() {
   try {
     const res = await apiCall('/api/v1/api-keys');
     const list = res.data || [];
+    AppState.lastApiKeys = list;
+    if (window.FIMMobile) window.FIMMobile.notify();
 
     if (list.length === 0) {
       container.innerHTML = emptyRow(6, 'No API keys yet', 'Generate a scoped key for Hermes, n8n, or your own scripts.');

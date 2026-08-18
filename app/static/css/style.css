@@ -163,15 +163,10 @@ body.is-locked .app-container {
   width: 38px;
   height: 38px;
   border-radius: 11px;
-  background: var(--accent);
-  color: var(--accent-fg);
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 15px;
-  letter-spacing: -0.03em;
-  display: grid;
-  place-items: center;
+  overflow: hidden;
   flex-shrink: 0;
+  background: #1a1814;
+  padding: 0;
 }
 
 .app-title h1 {
