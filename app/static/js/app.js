@@ -13,6 +13,62 @@ const AppState = {
   signaturePad: null,
 };
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"')
+    .replace(/'/g, '&#39;');
+}
+
+function formatMoney(amount, currency = '') {
+  const n = Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return currency ? `${currency} ${n}` : n;
+}
+
+function formatStatus(status) {
+  return String(status || '').replace(/_/g, ' ');
+}
+
+function emptyRow(cols, title, hint) {
+  return `<tr><td colspan="${cols}"><div class="empty-state"><div class="empty-state-title">${escapeHtml(title)}</div><p>${escapeHtml(hint)}</p></div></td></tr>`;
+}
+
+function setAuthedChrome(user) {
+  AppState.currentUser = user;
+  const name = user?.full_name || user?.email || 'Administrator';
+  const email = user?.email || '';
+  const nameEl = document.getElementById('currentUserName');
+  const emailEl = document.getElementById('currentUserEmail');
+  const avatarEl = document.getElementById('userAvatar');
+  if (nameEl) nameEl.textContent = name;
+  if (emailEl) emailEl.textContent = email;
+  if (avatarEl) avatarEl.textContent = (name || 'A').trim().charAt(0).toUpperCase();
+}
+
+function showLoginGate(message) {
+  const gate = document.getElementById('loginGate');
+  const err = document.getElementById('loginError');
+  if (gate) gate.classList.add('active');
+  document.body.classList.add('is-locked');
+  if (err) {
+    if (message) {
+      err.textContent = message;
+      err.classList.add('active');
+    } else {
+      err.textContent = '';
+      err.classList.remove('active');
+    }
+  }
+}
+
+function hideLoginGate() {
+  const gate = document.getElementById('loginGate');
+  if (gate) gate.classList.remove('active');
+  document.body.classList.remove('is-locked');
+}
+
 // API Helper
 async function apiCall(endpoint, options = {}) {
   const headers = {
@@ -24,7 +80,6 @@ async function apiCall(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${AppState.authToken}`;
   }
 
-  // File uploads or formData shouldn't set Content-Type header
   if (options.body instanceof FormData) {
     delete headers['Content-Type'];
   }
@@ -33,7 +88,7 @@ async function apiCall(endpoint, options = {}) {
     const res = await fetch(endpoint, { ...options, headers });
     if (res.status === 401) {
       if (!endpoint.includes('/auth/login') && !endpoint.includes('/health')) {
-        showLoginModal();
+        showLoginGate();
       }
     }
     const data = await res.json();
@@ -55,21 +110,25 @@ function showToast(message, type = 'success') {
 
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  toast.innerHTML = `<span>${message}</span>`;
+  toast.textContent = message;
   container.appendChild(toast);
 
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transform = 'translateY(10px)';
-    toast.style.transition = 'all 0.3s ease';
-    setTimeout(() => toast.remove(), 300);
+    toast.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+    setTimeout(() => toast.remove(), 180);
   }, 3500);
 }
 
 // Modal Helpers
 function openModal(modalId) {
   const m = document.getElementById(modalId);
-  if (m) m.classList.add('active');
+  if (m) {
+    m.classList.add('active');
+    const focusable = m.querySelector('input, select, textarea, button');
+    if (focusable) focusable.focus();
+  }
 }
 
 function closeModal(modalId) {
@@ -77,36 +136,55 @@ function closeModal(modalId) {
   if (m) m.classList.remove('active');
 }
 
+function closeTopModal() {
+  const open = [...document.querySelectorAll('.modal-backdrop.active')];
+  const top = open[open.length - 1];
+  if (top) top.classList.remove('active');
+}
+
 // Generic confirmation helper that returns a Promise resolving to true/false
-function showConfirm(title, message, confirmText='Confirm') {
+function showConfirm(title, message, confirmText = 'Confirm') {
   return new Promise((resolve) => {
     const modal = document.getElementById('confirmModal');
-    if (!modal) { resolve(confirm(message)); return; }
-    document.getElementById('confirmModalTitle').innerText = title || 'Confirm';
-    document.getElementById('confirmModalMessage').innerText = message || 'Are you sure?';
+    if (!modal) {
+      resolve(window.confirm(message));
+      return;
+    }
+    document.getElementById('confirmModalTitle').textContent = title || 'Confirm';
+    document.getElementById('confirmModalMessage').textContent = message || 'Are you sure?';
     const btn = document.getElementById('confirmModalConfirmBtn');
+    const cancelBtn = modal.querySelector('.modal-footer .btn-secondary');
+    const closeBtn = modal.querySelector('.modal-close');
+    btn.textContent = confirmText || 'Confirm';
 
-    function cleanup() {
+    function finish(value) {
       btn.removeEventListener('click', onConfirm);
+      cancelBtn?.removeEventListener('click', onCancel);
+      closeBtn?.removeEventListener('click', onCancel);
+      closeModal('confirmModal');
+      resolve(value);
     }
 
-    function onConfirm() {
-      cleanup();
-      closeModal('confirmModal');
-      resolve(true);
-    }
+    function onConfirm() { finish(true); }
+    function onCancel() { finish(false); }
 
     btn.addEventListener('click', onConfirm);
+    cancelBtn?.addEventListener('click', onCancel);
+    closeBtn?.addEventListener('click', onCancel);
     openModal('confirmModal');
-    // If the user closes the modal via close button, resolve false when it happens by listening for focus/active state not available here.
   });
 }
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeTopModal();
+});
 
 // App Initialization
 document.addEventListener('DOMContentLoaded', async () => {
   initNavigation();
   initSignaturePad();
-  await checkAuthStatus();
+  const authed = await checkAuthStatus();
+  if (!authed) return;
   await loadBusinesses();
   await switchSection('dashboard');
 });
@@ -148,6 +226,7 @@ async function switchSection(sectionId) {
     s.classList.toggle('active', s.id === `section-${sectionId}`);
   });
 
+  if (window.closeMobileSidebar) window.closeMobileSidebar();
   await refreshCurrentSection();
 }
 
@@ -188,34 +267,75 @@ async function refreshCurrentSection() {
 
 // Authentication
 async function checkAuthStatus() {
+  if (!AppState.authToken) {
+    showLoginGate();
+    return false;
+  }
   try {
     const res = await apiCall('/api/v1/auth/me');
-    AppState.currentUser = res.data;
-    if (document.getElementById('currentUserName')) document.getElementById('currentUserName').innerText = res.data.full_name || res.data.email;
-    if (document.getElementById('currentUserEmail')) document.getElementById('currentUserEmail').innerText = res.data.email;
+    setAuthedChrome(res.data);
+    hideLoginGate();
+    return true;
   } catch {
-    // If not logged in, auto-login with default admin if local
-    try {
-      const loginRes = await apiCall('/api/v1/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: 'admin@freeinvoicemaker.com',
-          password: 'admin123',
-        }),
-      });
-      AppState.authToken = loginRes.data.access_token;
-      localStorage.setItem('fim_token', AppState.authToken);
-      AppState.currentUser = loginRes.data.user;
-      if (document.getElementById('currentUserName')) document.getElementById('currentUserName').innerText = AppState.currentUser.full_name || AppState.currentUser.email;
-      if (document.getElementById('currentUserEmail')) document.getElementById('currentUserEmail').innerText = AppState.currentUser.email;
-    } catch {
-      showLoginModal();
-    }
+    localStorage.removeItem('fim_token');
+    AppState.authToken = null;
+    showLoginGate();
+    return false;
   }
 }
 
 function showLoginModal() {
-  openModal('loginModal');
+  showLoginGate();
+}
+
+async function handleLoginSubmit(event) {
+  event.preventDefault();
+  const form = event.target;
+  const btn = document.getElementById('loginSubmitBtn');
+  const err = document.getElementById('loginError');
+  if (err) {
+    err.textContent = '';
+    err.classList.remove('active');
+  }
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
+  }
+  try {
+    const loginRes = await apiCall('/api/v1/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: form.email.value.trim(),
+        password: form.password.value,
+      }),
+    });
+    AppState.authToken = loginRes.data.access_token;
+    localStorage.setItem('fim_token', AppState.authToken);
+    setAuthedChrome(loginRes.data.user);
+    hideLoginGate();
+    form.reset();
+    await loadBusinesses();
+    await switchSection('dashboard');
+  } catch (error) {
+    showLoginGate(error.message || 'Invalid email or password.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Sign in';
+    }
+  }
+}
+
+async function handleLogout() {
+  try {
+    await apiCall('/api/v1/auth/logout', { method: 'POST' });
+  } catch {
+    // Cookie clear is best-effort; always drop the local token.
+  }
+  AppState.authToken = null;
+  AppState.currentUser = null;
+  localStorage.removeItem('fim_token');
+  showLoginGate();
 }
 
 // Businesses
@@ -252,13 +372,13 @@ async function loadBusinessesList() {
   const container = document.getElementById('businessesTableBody');
   if (!container) return;
 
-  container.innerHTML = '<tr><td colspan="6" style="text-align:center;">Loading business profiles...</td></tr>';
+  container.innerHTML = emptyRow(6, 'Loading', 'Fetching business profiles...');
   try {
     const res = await apiCall('/api/v1/businesses');
     const list = res.data || [];
 
     if (list.length === 0) {
-      container.innerHTML = '<tr><td colspan="6" style="text-align:center;">No businesses found.</td></tr>';
+      container.innerHTML = emptyRow(6, 'No businesses yet', 'Create a profile to start invoicing.');
       return;
     }
 
@@ -266,14 +386,17 @@ async function loadBusinessesList() {
       .map(
         (b) => `
       <tr>
-        <td><strong>${b.trading_name || b.name}</strong> ${b.is_default ? '<span class="status-badge badge-paid">Default</span>' : ''}</td>
-        <td>${b.registration_number || '-'}</td>
-        <td>${b.tax_number || '-'}</td>
-        <td>${b.email || '-'} / ${b.phone || '-'}</td>
-        <td>${b.default_currency} (${b.template_name})</td>
+        <td><strong>${escapeHtml(b.trading_name || b.name)}</strong> ${b.is_default ? '<span class="status-badge badge-paid">Default</span>' : ''}</td>
+        <td>${escapeHtml(b.registration_number || '-')}</td>
+        <td>${escapeHtml(b.tax_number || '-')}</td>
+        <td>${escapeHtml(b.email || '-')} / ${escapeHtml(b.phone || '-')}</td>
+        <td>${escapeHtml(b.default_currency)} (${escapeHtml(b.template_name)})</td>
         <td>
-          <button class="btn btn-secondary btn-sm" onclick="openSignatureModal('${b.id}')">Signature</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteBusiness('${b.id}')">Delete</button>
+          <div class="table-actions">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openEditBusinessModal('${b.id}')">Edit</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openSignatureModal('${b.id}')">Signature</button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="deleteBusiness('${b.id}')">Delete</button>
+          </div>
         </td>
       </tr>
     `
@@ -292,13 +415,42 @@ function openCreateBusinessModal() {
   document.getElementById('businessFormSaveBtn').disabled = false;
   document.getElementById('businessFormSaveBtn').innerText = 'Save Business';
   document.getElementById('businessFormSaveBtn').style.display = '';
-  // ensure inputs are editable
-  Array.from(form.querySelectorAll('input, textarea, select')).forEach(i => i.removeAttribute('disabled'));
+  Array.from(form.querySelectorAll('input, textarea, select')).forEach((i) => i.removeAttribute('disabled'));
   openModal('businessModal');
 }
 
+async function openEditBusinessModal(id) {
+  try {
+    const res = await apiCall(`/api/v1/businesses/${id}`);
+    const b = res.data;
+    const form = document.getElementById('businessForm');
+    form.reset();
+    document.getElementById('businessFormId').value = b.id;
+    document.getElementById('businessName').value = b.name || '';
+    document.getElementById('businessTradingName').value = b.trading_name || '';
+    document.getElementById('businessEmail').value = b.email || '';
+    document.getElementById('businessPhone').value = b.phone || '';
+    document.getElementById('businessWebsite').value = b.website || '';
+    document.getElementById('businessAddress').value = b.address || '';
+    document.getElementById('businessCity').value = b.city || '';
+    document.getElementById('businessCountry').value = b.country || '';
+    document.getElementById('businessCurrency').value = b.default_currency || 'USD';
+    document.getElementById('businessRegistration').value = b.registration_number || '';
+    document.getElementById('businessTaxNumber').value = b.tax_number || '';
+    document.getElementById('businessPaymentInfo').value = b.payment_instructions || '';
+    document.getElementById('businessModalTitle').innerText = 'Edit Business';
+    document.getElementById('businessFormSaveBtn').disabled = false;
+    document.getElementById('businessFormSaveBtn').innerText = 'Save Business';
+    document.getElementById('businessFormSaveBtn').style.display = '';
+    Array.from(form.querySelectorAll('input, textarea, select')).forEach((i) => i.removeAttribute('disabled'));
+    openModal('businessModal');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
 async function deleteBusiness(id) {
-  if (!(await showConfirm('Delete Business','Are you sure you want to delete this business profile?','Delete'))) return;
+  if (!(await showConfirm('Delete Business', 'Are you sure you want to delete this business profile?', 'Delete'))) return;
   try {
     await apiCall(`/api/v1/businesses/${id}`, { method: 'DELETE' });
     showToast('Business profile deleted.');
@@ -308,12 +460,13 @@ async function deleteBusiness(id) {
     showToast(err.message, 'error');
   }
 }
+
 async function handleBusinessSubmit(e) {
   e.preventDefault();
   const saveBtn = document.getElementById('businessFormSaveBtn');
-  saveBtn.disabled = true; saveBtn.innerText = 'Saving...';
+  saveBtn.disabled = true;
+  saveBtn.innerText = 'Saving...';
   const id = document.getElementById('businessFormId').value || null;
-  const form = document.getElementById('businessForm');
   const payload = {
     name: document.getElementById('businessName').value.trim(),
     trading_name: document.getElementById('businessTradingName').value.trim() || null,
@@ -358,10 +511,10 @@ async function handleBusinessSubmit(e) {
   } catch (err) {
     showToast(err.message, 'error');
   } finally {
-    saveBtn.disabled = false; saveBtn.innerText = 'Save Business';
+    saveBtn.disabled = false;
+    saveBtn.innerText = 'Save Business';
   }
 }
-
 
 // Dashboard
 async function loadDashboard() {
@@ -371,10 +524,10 @@ async function loadDashboard() {
     const res = await apiCall(`/api/v1/stats/dashboard?business_id=${AppState.activeBusinessId}`);
     const data = res.data;
 
-    document.getElementById('statTotalInvoiced').innerText = `${data.currency} ${Number(data.total_invoiced).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-    document.getElementById('statTotalPaid').innerText = `${data.currency} ${Number(data.total_paid).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-    document.getElementById('statTotalOutstanding').innerText = `${data.currency} ${Number(data.total_outstanding).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-    document.getElementById('statTotalOverdue').innerText = `${data.currency} ${Number(data.total_overdue).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    document.getElementById('statTotalInvoiced').innerText = formatMoney(data.total_invoiced, data.currency);
+    document.getElementById('statTotalPaid').innerText = formatMoney(data.total_paid, data.currency);
+    document.getElementById('statTotalOutstanding').innerText = formatMoney(data.total_outstanding, data.currency);
+    document.getElementById('statTotalOverdue').innerText = formatMoney(data.total_overdue, data.currency);
 
     document.getElementById('countInvoices').innerText = data.count_invoices;
     document.getElementById('countReceipts').innerText = data.count_receipts;
@@ -383,7 +536,7 @@ async function loadDashboard() {
     if (!recentContainer) return;
 
     if (!data.recent_documents || data.recent_documents.length === 0) {
-      recentContainer.innerHTML = '<tr><td colspan="6" style="text-align:center;">No recent documents found.</td></tr>';
+      recentContainer.innerHTML = emptyRow(6, 'No documents yet', 'Create an invoice or quotation to see activity here.');
       return;
     }
 
@@ -391,13 +544,13 @@ async function loadDashboard() {
       .map(
         (doc) => `
       <tr>
-        <td><strong>${doc.document_number}</strong></td>
-        <td><span class="status-badge badge-draft">${doc.document_type}</span></td>
-        <td>${doc.issue_date}</td>
-        <td>${doc.currency} ${Number(doc.grand_total).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-        <td><span class="status-badge badge-${doc.status}">${doc.status}</span></td>
+        <td><strong>${escapeHtml(doc.document_number)}</strong></td>
+        <td><span class="status-badge badge-draft">${escapeHtml(doc.document_type)}</span></td>
+        <td>${escapeHtml(doc.issue_date)}</td>
+        <td class="num">${escapeHtml(formatMoney(doc.grand_total, doc.currency))}</td>
+        <td><span class="status-badge badge-${escapeHtml(doc.status)}">${escapeHtml(formatStatus(doc.status))}</span></td>
         <td>
-          <a href="${doc.pdf_url}" target="_blank" class="btn btn-secondary btn-sm">PDF</a>
+          <a href="${escapeHtml(doc.pdf_url || '#')}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">PDF</a>
         </td>
       </tr>
     `
@@ -421,7 +574,7 @@ async function loadCustomers(search = '') {
     AppState.customersCache = res.data || [];
 
     if (AppState.customersCache.length === 0) {
-      container.innerHTML = '<tr><td colspan="6" style="text-align:center;">No customers found.</td></tr>';
+      container.innerHTML = emptyRow(6, 'No customers yet', 'Add a client to start creating invoices.');
       return;
     }
 
@@ -429,14 +582,16 @@ async function loadCustomers(search = '') {
       .map(
         (c) => `
       <tr>
-        <td><strong>${c.display_name}</strong></td>
-        <td>${c.company_name || '-'}</td>
-        <td>${c.email || '-'}</td>
-        <td>${c.phone || '-'}</td>
-        <td>${c.city || ''}, ${c.country}</td>
+        <td><strong>${escapeHtml(c.display_name)}</strong></td>
+        <td>${escapeHtml(c.company_name || '-')}</td>
+        <td>${escapeHtml(c.email || '-')}</td>
+        <td>${escapeHtml(c.phone || '-')}</td>
+        <td>${escapeHtml([c.city, c.country].filter(Boolean).join(', ') || '-')}</td>
         <td>
-          <button class="btn btn-secondary btn-sm" onclick="viewCustomerDetail('${c.id}')">View</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteCustomer('${c.id}')">Delete</button>
+          <div class="table-actions">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openEditCustomerModal('${c.id}')">Edit</button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="deleteCustomer('${c.id}')">Delete</button>
+          </div>
         </td>
       </tr>
     `
@@ -448,24 +603,22 @@ async function loadCustomers(search = '') {
 }
 
 function openCreateCustomerModal() {
-  // Reset and open customer modal for create
   const form = document.getElementById('customerForm');
   form.reset();
   document.getElementById('customerFormId').value = '';
   document.getElementById('customerModalTitle').innerText = 'Add Customer';
   const saveBtn = document.getElementById('customerFormSaveBtn');
-  saveBtn.disabled = false; saveBtn.innerText = 'Save Customer';
-  // ensure inputs are editable
-  Array.from(form.querySelectorAll('input, textarea')).forEach(i => i.removeAttribute('disabled'));
+  saveBtn.disabled = false;
+  saveBtn.innerText = 'Save Customer';
+  Array.from(form.querySelectorAll('input, textarea')).forEach((i) => i.removeAttribute('disabled'));
   document.getElementById('customerFormSaveBtn').style.display = '';
   openModal('customerModal');
 }
 
-async function viewCustomerDetail(id) {
+async function openEditCustomerModal(id) {
   try {
     const res = await apiCall(`/api/v1/customers/${id}`);
     const c = res.data;
-    // populate form
     document.getElementById('customerFormId').value = c.id;
     document.getElementById('customerDisplayName').value = c.display_name || '';
     document.getElementById('customerCompany').value = c.company_name || '';
@@ -476,15 +629,21 @@ async function viewCustomerDetail(id) {
     document.getElementById('customerCountry').value = c.country || '';
     document.getElementById('customerTaxNumber').value = c.tax_number || '';
     document.getElementById('customerNotes').value = c.notes || '';
-    document.getElementById('customerModalTitle').innerText = 'View Customer';
-    // disable inputs for view-only
+    document.getElementById('customerModalTitle').innerText = 'Edit Customer';
     const form = document.getElementById('customerForm');
-    Array.from(form.querySelectorAll('input, textarea')).forEach(i => i.setAttribute('disabled', 'disabled'));
-    document.getElementById('customerFormSaveBtn').style.display = 'none';
+    Array.from(form.querySelectorAll('input, textarea')).forEach((i) => i.removeAttribute('disabled'));
+    const saveBtn = document.getElementById('customerFormSaveBtn');
+    saveBtn.style.display = '';
+    saveBtn.disabled = false;
+    saveBtn.innerText = 'Save Customer';
     openModal('customerModal');
   } catch (err) {
     showToast(err.message, 'error');
   }
+}
+
+async function viewCustomerDetail(id) {
+  return openEditCustomerModal(id);
 }
 
 async function deleteCustomer(id) {
@@ -518,11 +677,12 @@ async function importCustomersCSV(input) {
     showToast(err.message, 'error');
   }
 }
+
 async function handleCustomerSubmit(e) {
   e.preventDefault();
-  const form = document.getElementById('customerForm');
   const saveBtn = document.getElementById('customerFormSaveBtn');
-  saveBtn.disabled = true; saveBtn.innerText = 'Saving...';
+  saveBtn.disabled = true;
+  saveBtn.innerText = 'Saving...';
   const id = document.getElementById('customerFormId').value || null;
   const payload = {
     business_id: AppState.activeBusinessId,
@@ -549,10 +709,10 @@ async function handleCustomerSubmit(e) {
   } catch (err) {
     showToast(err.message || 'Failed to save customer', 'error');
   } finally {
-    saveBtn.disabled = false; saveBtn.innerText = 'Save Customer';
+    saveBtn.disabled = false;
+    saveBtn.innerText = 'Save Customer';
   }
 }
-
 
 // Products
 async function loadProducts(search = '') {
@@ -567,7 +727,7 @@ async function loadProducts(search = '') {
     AppState.productsCache = res.data || [];
 
     if (AppState.productsCache.length === 0) {
-      container.innerHTML = '<tr><td colspan="6" style="text-align:center;">No products or services found.</td></tr>';
+      container.innerHTML = emptyRow(6, 'No items yet', 'Add products or services to reuse on invoices.');
       return;
     }
 
@@ -575,13 +735,16 @@ async function loadProducts(search = '') {
       .map(
         (p) => `
       <tr>
-        <td><strong>${p.name}</strong></td>
-        <td>${p.sku || '-'}</td>
-        <td>${p.unit}</td>
-        <td>${p.currency} ${Number(p.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-        <td>${p.tax_rate}%</td>
+        <td><strong>${escapeHtml(p.name)}</strong></td>
+        <td>${escapeHtml(p.sku || '-')}</td>
+        <td>${escapeHtml(p.unit)}</td>
+        <td class="num">${escapeHtml(formatMoney(p.price, p.currency))}</td>
+        <td>${escapeHtml(p.tax_rate)}%</td>
         <td>
-          <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">Delete</button>
+          <div class="table-actions">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openEditProductModal('${p.id}')">Edit</button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">Delete</button>
+          </div>
         </td>
       </tr>
     `
@@ -600,13 +763,38 @@ function openCreateProductModal() {
   document.getElementById('productFormSaveBtn').disabled = false;
   document.getElementById('productFormSaveBtn').innerText = 'Save Item';
   document.getElementById('productFormSaveBtn').style.display = '';
-  // ensure inputs are editable
-  Array.from(form.querySelectorAll('input, textarea')).forEach(i => i.removeAttribute('disabled'));
+  Array.from(form.querySelectorAll('input, textarea, select')).forEach((i) => i.removeAttribute('disabled'));
   openModal('productModal');
 }
 
+async function openEditProductModal(id) {
+  try {
+    const res = await apiCall(`/api/v1/products/${id}`);
+    const p = res.data;
+    document.getElementById('productFormId').value = p.id;
+    document.getElementById('productName').value = p.name || '';
+    document.getElementById('productSku').value = p.sku || '';
+    document.getElementById('productUnit').value = p.unit || 'unit';
+    document.getElementById('productCurrency').value = p.currency || 'USD';
+    document.getElementById('productPrice').value = p.price ?? 0;
+    document.getElementById('productTax').value = p.tax_rate ?? 0;
+    document.getElementById('productType').value = p.type || 'product';
+    document.getElementById('productDescription').value = p.description || '';
+    document.getElementById('productModalTitle').innerText = 'Edit Product / Service';
+    const form = document.getElementById('productForm');
+    Array.from(form.querySelectorAll('input, textarea, select')).forEach((i) => i.removeAttribute('disabled'));
+    const saveBtn = document.getElementById('productFormSaveBtn');
+    saveBtn.style.display = '';
+    saveBtn.disabled = false;
+    saveBtn.innerText = 'Save Item';
+    openModal('productModal');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
 async function deleteProduct(id) {
-  if (!(await showConfirm('Delete Item','Are you sure you want to delete this item?','Delete'))) return;
+  if (!(await showConfirm('Delete Item', 'Are you sure you want to delete this item?', 'Delete'))) return;
   try {
     await apiCall(`/api/v1/products/${id}`, { method: 'DELETE' });
     showToast('Product deleted.');
@@ -636,10 +824,12 @@ async function importProductsCSV(input) {
     showToast(err.message, 'error');
   }
 }
+
 async function handleProductSubmit(e) {
   e.preventDefault();
   const saveBtn = document.getElementById('productFormSaveBtn');
-  saveBtn.disabled = true; saveBtn.innerText = 'Saving...';
+  saveBtn.disabled = true;
+  saveBtn.innerText = 'Saving...';
   const id = document.getElementById('productFormId').value || null;
   const payload = {
     business_id: AppState.activeBusinessId,
@@ -665,25 +855,29 @@ async function handleProductSubmit(e) {
   } catch (err) {
     showToast(err.message, 'error');
   } finally {
-    saveBtn.disabled = false; saveBtn.innerText = 'Save Item';
+    saveBtn.disabled = false;
+    saveBtn.innerText = 'Save Item';
   }
 }
 
-
 // Invoices
-async function loadInvoices(statusFilter = '') {
+async function loadInvoices() {
   if (!AppState.activeBusinessId) return;
 
   const container = document.getElementById('invoicesTableBody');
   if (!container) return;
+  const search = document.getElementById('invoicesSearchInput')?.value?.trim() || '';
+  const statusFilter = document.getElementById('invoiceStatusFilter')?.value || '';
 
   try {
-    const sParam = statusFilter ? `&status=${encodeURIComponent(statusFilter)}` : '';
-    const res = await apiCall(`/api/v1/invoices?business_id=${AppState.activeBusinessId}${sParam}`);
+    const params = new URLSearchParams({ business_id: AppState.activeBusinessId });
+    if (statusFilter) params.set('status', statusFilter);
+    if (search) params.set('q', search);
+    const res = await apiCall(`/api/v1/invoices?${params.toString()}`);
     const list = res.data || [];
 
     if (list.length === 0) {
-      container.innerHTML = '<tr><td colspan="7" style="text-align:center;">No invoices found.</td></tr>';
+      container.innerHTML = emptyRow(7, 'No invoices found', 'Create an invoice or adjust your filters.');
       return;
     }
 
@@ -691,16 +885,18 @@ async function loadInvoices(statusFilter = '') {
       .map(
         (inv) => `
       <tr>
-        <td><strong>${inv.document_number}</strong></td>
-        <td>${inv.issue_date}</td>
-        <td>${inv.due_date || '-'}</td>
-        <td>${inv.currency} ${Number(inv.grand_total).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-        <td>${inv.currency} ${Number(inv.amount_due).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-        <td><span class="status-badge badge-${inv.status}">${inv.status}</span></td>
+        <td><strong>${escapeHtml(inv.document_number)}</strong></td>
+        <td>${escapeHtml(inv.issue_date)}</td>
+        <td>${escapeHtml(inv.due_date || '-')}</td>
+        <td class="num">${escapeHtml(formatMoney(inv.grand_total, inv.currency))}</td>
+        <td class="num">${escapeHtml(formatMoney(inv.amount_due, inv.currency))}</td>
+        <td><span class="status-badge badge-${escapeHtml(inv.status)}">${escapeHtml(formatStatus(inv.status))}</span></td>
         <td>
-          <a href="${inv.pdf_url}" target="_blank" class="btn btn-secondary btn-sm">PDF</a>
-          <button class="btn btn-primary btn-sm" onclick="openRecordPaymentModal('${inv.id}', '${inv.document_number}', ${inv.amount_due}, '${inv.currency}')">Pay</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteDocumentRow('${inv.id}')">Delete</button>
+          <div class="table-actions">
+            <a href="${escapeHtml(inv.pdf_url || '#')}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">PDF</a>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openRecordPaymentModal('${inv.id}', '${escapeHtml(inv.document_number)}', ${Number(inv.amount_due) || 0}, '${escapeHtml(inv.currency)}')">Pay</button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="deleteDocumentRow('${inv.id}')">Delete</button>
+          </div>
         </td>
       </tr>
     `
@@ -723,7 +919,7 @@ async function loadQuotations() {
     const list = res.data || [];
 
     if (list.length === 0) {
-      container.innerHTML = '<tr><td colspan="6" style="text-align:center;">No quotations found.</td></tr>';
+      container.innerHTML = emptyRow(6, 'No quotations yet', 'Create a quotation and convert it to an invoice when accepted.');
       return;
     }
 
@@ -731,15 +927,17 @@ async function loadQuotations() {
       .map(
         (q) => `
       <tr>
-        <td><strong>${q.document_number}</strong></td>
-        <td>${q.issue_date}</td>
-        <td>${q.expiry_date || '-'}</td>
-        <td>${q.currency} ${Number(q.grand_total).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-        <td><span class="status-badge badge-${q.status}">${q.status}</span></td>
+        <td><strong>${escapeHtml(q.document_number)}</strong></td>
+        <td>${escapeHtml(q.issue_date)}</td>
+        <td>${escapeHtml(q.expiry_date || '-')}</td>
+        <td class="num">${escapeHtml(formatMoney(q.grand_total, q.currency))}</td>
+        <td><span class="status-badge badge-${escapeHtml(q.status)}">${escapeHtml(formatStatus(q.status))}</span></td>
         <td>
-          <a href="${q.pdf_url}" target="_blank" class="btn btn-secondary btn-sm">PDF</a>
-          ${q.status !== 'converted' ? `<button class="btn btn-primary btn-sm" onclick="convertDocToInvoice('${q.id}', 'quotations')">Convert to Invoice</button>` : ''}
-          <button class="btn btn-danger btn-sm" onclick="deleteDocumentRow('${q.id}')">Delete</button>
+          <div class="table-actions">
+            <a href="${escapeHtml(q.pdf_url || '#')}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">PDF</a>
+            ${q.status !== 'converted' ? `<button type="button" class="btn btn-primary btn-sm" onclick="convertDocToInvoice('${q.id}', 'quotations')">Convert</button>` : ''}
+            <button type="button" class="btn btn-danger btn-sm" onclick="deleteDocumentRow('${q.id}')">Delete</button>
+          </div>
         </td>
       </tr>
     `
@@ -762,23 +960,25 @@ async function loadEstimates() {
     const list = res.data || [];
 
     if (list.length === 0) {
-      container.innerHTML = '<tr><td colspan="6" style="text-align:center;">No estimates found.</td></tr>';
+      container.innerHTML = emptyRow(6, 'No estimates yet', 'Draft an estimate and convert it once the client approves.');
       return;
     }
 
     container.innerHTML = list
       .map(
-        (e) => `
+        (est) => `
       <tr>
-        <td><strong>${e.document_number}</strong></td>
-        <td>${e.issue_date}</td>
-        <td>${e.expiry_date || '-'}</td>
-        <td>${e.currency} ${Number(e.grand_total).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-        <td><span class="status-badge badge-${e.status}">${e.status}</span></td>
+        <td><strong>${escapeHtml(est.document_number)}</strong></td>
+        <td>${escapeHtml(est.issue_date)}</td>
+        <td>${escapeHtml(est.expiry_date || '-')}</td>
+        <td class="num">${escapeHtml(formatMoney(est.grand_total, est.currency))}</td>
+        <td><span class="status-badge badge-${escapeHtml(est.status)}">${escapeHtml(formatStatus(est.status))}</span></td>
         <td>
-          <a href="${e.pdf_url}" target="_blank" class="btn btn-secondary btn-sm">PDF</a>
-          ${e.status !== 'converted' ? `<button class="btn btn-primary btn-sm" onclick="convertDocToInvoice('${e.id}', 'estimates')">Convert to Invoice</button>` : ''}
-          <button class="btn btn-danger btn-sm" onclick="deleteDocumentRow('${e.id}')">Delete</button>
+          <div class="table-actions">
+            <a href="${escapeHtml(est.pdf_url || '#')}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">PDF</a>
+            ${est.status !== 'converted' ? `<button type="button" class="btn btn-primary btn-sm" onclick="convertDocToInvoice('${est.id}', 'estimates')">Convert</button>` : ''}
+            <button type="button" class="btn btn-danger btn-sm" onclick="deleteDocumentRow('${est.id}')">Delete</button>
+          </div>
         </td>
       </tr>
     `
@@ -801,7 +1001,7 @@ async function loadReceipts() {
     const list = res.data || [];
 
     if (list.length === 0) {
-      container.innerHTML = '<tr><td colspan="6" style="text-align:center;">No payment receipts found.</td></tr>';
+      container.innerHTML = emptyRow(6, 'No receipts yet', 'Record a payment on an invoice to generate a receipt.');
       return;
     }
 
@@ -809,14 +1009,16 @@ async function loadReceipts() {
       .map(
         (r) => `
       <tr>
-        <td><strong>${r.receipt_number || '-'}</strong></td>
-        <td>${r.payment_date}</td>
-        <td>${r.payment_method}</td>
-        <td>${r.reference_number || '-'}</td>
-        <td><strong>${r.currency} ${Number(r.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></td>
+        <td><strong>${escapeHtml(r.receipt_number || '-')}</strong></td>
+        <td>${escapeHtml(r.payment_date)}</td>
+        <td>${escapeHtml(r.payment_method)}</td>
+        <td>${escapeHtml(r.reference_number || '-')}</td>
+        <td class="num"><strong>${escapeHtml(formatMoney(r.amount, r.currency))}</strong></td>
         <td>
-          <a href="${r.pdf_url}" target="_blank" class="btn btn-secondary btn-sm">PDF</a>
-          <button class="btn btn-danger btn-sm" onclick="deletePayment('${r.id}')">Delete</button>
+          <div class="table-actions">
+            <a href="${escapeHtml(r.pdf_url || '#')}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">PDF</a>
+            <button type="button" class="btn btn-danger btn-sm" onclick="deletePayment('${r.id}')">Delete</button>
+          </div>
         </td>
       </tr>
     `
@@ -837,7 +1039,7 @@ async function loadApiKeys() {
     const list = res.data || [];
 
     if (list.length === 0) {
-      container.innerHTML = '<tr><td colspan="6" style="text-align:center;">No API keys generated yet.</td></tr>';
+      container.innerHTML = emptyRow(6, 'No API keys yet', 'Generate a scoped key for Hermes, n8n, or your own scripts.');
       return;
     }
 
@@ -845,13 +1047,13 @@ async function loadApiKeys() {
       .map(
         (k) => `
       <tr>
-        <td><strong>${k.name}</strong></td>
-        <td><code>${k.key_prefix}</code></td>
-        <td><code>${k.scopes}</code></td>
-        <td>${new Date(k.created_at).toLocaleDateString()}</td>
-        <td>${k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : 'Never'}</td>
+        <td><strong>${escapeHtml(k.name)}</strong></td>
+        <td><code>${escapeHtml(k.key_prefix)}</code></td>
+        <td><code>${escapeHtml(k.scopes)}</code></td>
+        <td>${escapeHtml(new Date(k.created_at).toLocaleDateString())}</td>
+        <td>${k.last_used_at ? escapeHtml(new Date(k.last_used_at).toLocaleDateString()) : 'Never'}</td>
         <td>
-          <button class="btn btn-danger btn-sm" onclick="revokeApiKey('${k.id}')">Revoke</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="revokeApiKey('${k.id}')">Revoke</button>
         </td>
       </tr>
     `
@@ -862,14 +1064,12 @@ async function loadApiKeys() {
   }
 }
 
-// Settings
 async function loadSettings() {
   // Settings view is static with form handlers
 }
 
-// Conversion helper
 async function convertDocToInvoice(id, routePrefix) {
-  if (!(await showConfirm('Convert Document','Convert this document into a new Invoice?','Convert'))) return;
+  if (!(await showConfirm('Convert Document', 'Convert this document into a new Invoice?', 'Convert'))) return;
   try {
     const res = await apiCall(`/api/v1/${routePrefix}/${id}/convert-to-invoice`, {
       method: 'POST',
@@ -883,7 +1083,7 @@ async function convertDocToInvoice(id, routePrefix) {
 }
 
 async function deleteDocumentRow(id) {
-  if (!(await showConfirm('Delete Document','Are you sure you want to delete this document?','Delete'))) return;
+  if (!(await showConfirm('Delete Document', 'Are you sure you want to delete this document?', 'Delete'))) return;
   try {
     await apiCall(`/api/v1/documents/${id}`, { method: 'DELETE' });
     showToast('Document deleted.');
@@ -894,7 +1094,7 @@ async function deleteDocumentRow(id) {
 }
 
 async function deletePayment(id) {
-  if (!(await showConfirm('Delete Payment','Are you sure you want to delete this payment receipt?','Delete'))) return;
+  if (!(await showConfirm('Delete Payment', 'Are you sure you want to delete this payment receipt?', 'Delete'))) return;
   try {
     await apiCall(`/api/v1/payments/${id}`, { method: 'DELETE' });
     showToast('Payment deleted.');
@@ -904,7 +1104,6 @@ async function deletePayment(id) {
   }
 }
 
-// Dynamic Document Item Row Builder
 function addDocumentItemRow(data = {}) {
   const container = document.getElementById('docItemsTableBody');
   if (!container) return;
@@ -913,11 +1112,11 @@ function addDocumentItemRow(data = {}) {
   row.className = 'doc-item-row';
   row.innerHTML = `
     <td>
-      <input type="text" class="form-control item-name" placeholder="Item / Service Name" value="${data.name || ''}" required>
-      <input type="text" class="form-control item-desc" placeholder="Description (optional)" style="margin-top:4px; font-size:12px;" value="${data.description || ''}">
+      <input type="text" class="form-control item-name" placeholder="Item / Service Name" value="${escapeHtml(data.name || '')}" required>
+      <input type="text" class="form-control item-desc" placeholder="Description (optional)" style="margin-top:4px; font-size:12px;" value="${escapeHtml(data.description || '')}">
     </td>
     <td style="width: 80px;">
-      <input type="text" class="form-control item-unit" value="${data.unit || 'unit'}">
+      <input type="text" class="form-control item-unit" value="${escapeHtml(data.unit || 'unit')}">
     </td>
     <td style="width: 80px;">
       <input type="number" class="form-control item-qty" step="any" min="0.01" value="${data.quantity || 1}" oninput="recalculateDocForm()">
@@ -932,10 +1131,12 @@ function addDocumentItemRow(data = {}) {
       <input type="number" class="form-control item-tax" step="0.1" min="0" value="${data.tax_rate || 0}" oninput="recalculateDocForm()">
     </td>
     <td style="width: 110px; text-align: right; vertical-align: middle;">
-      <strong class="item-total-display">$0.00</strong>
+      <strong class="item-total-display money">0.00</strong>
     </td>
     <td style="width: 40px; text-align: center; vertical-align: middle;">
-      <button type="button" class="btn btn-secondary btn-sm" onclick="this.closest('tr').remove(); recalculateDocForm();">✕</button>
+      <button type="button" class="btn btn-ghost btn-sm" aria-label="Remove row" onclick="this.closest('tr').remove(); recalculateDocForm();">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
     </td>
   `;
   container.appendChild(row);
@@ -975,7 +1176,6 @@ function recalculateDocForm() {
   if (document.getElementById('docSummaryGrandTotal')) document.getElementById('docSummaryGrandTotal').innerText = grandTotal.toFixed(2);
 }
 
-// Create Document Modal
 async function openNewDocumentModal(docType = 'invoice') {
   if (AppState.customersCache.length === 0) {
     await loadCustomers();
@@ -987,7 +1187,7 @@ async function openNewDocumentModal(docType = 'invoice') {
     return;
   }
 
-  document.getElementById('documentModalTitle').innerText = `Create ${docType.toUpperCase()}`;
+  document.getElementById('documentModalTitle').innerText = `Create ${docType.charAt(0).toUpperCase()}${docType.slice(1)}`;
   document.getElementById('docFormDocType').value = docType;
   document.getElementById('docFormId').value = '';
   document.getElementById('docItemsTableBody').innerHTML = '';
@@ -1007,7 +1207,9 @@ async function openNewDocumentModal(docType = 'invoice') {
   }
 
   const custSelect = document.getElementById('docCustomerSelect');
-  custSelect.innerHTML = AppState.customersCache.map((c) => `<option value="${c.id}">${c.display_name}</option>`).join('');
+  custSelect.innerHTML = AppState.customersCache
+    .map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.display_name)}</option>`)
+    .join('');
 
   addDocumentItemRow();
   openModal('documentModal');
@@ -1069,7 +1271,6 @@ async function handleDocumentSubmit(e) {
   }
 }
 
-// Payment Recording Modal
 function openRecordPaymentModal(docId, docNum, dueAmount, currency) {
   document.getElementById('payModalDocId').value = docId;
   document.getElementById('payModalDocNumber').innerText = docNum;
@@ -1107,7 +1308,6 @@ async function handlePaymentSubmit(e) {
   }
 }
 
-// API Key Generation Modal
 function openCreateApiKeyModal() {
   document.getElementById('apiKeyName').value = '';
   openModal('createApiKeyModal');
@@ -1140,7 +1340,7 @@ async function handleApiKeySubmit(e) {
 }
 
 async function revokeApiKey(id) {
-  if (!(await showConfirm('Revoke API Key','Are you sure you want to revoke and delete this API key?','Revoke'))) return;
+  if (!(await showConfirm('Revoke API Key', 'Are you sure you want to revoke and delete this API key?', 'Revoke'))) return;
   try {
     await apiCall(`/api/v1/api-keys/${id}`, { method: 'DELETE' });
     showToast('API key revoked.');
@@ -1150,7 +1350,6 @@ async function revokeApiKey(id) {
   }
 }
 
-// Signature Canvas Modal
 let targetSignatureBusinessId = null;
 
 function openSignatureModal(bizId) {
@@ -1184,7 +1383,6 @@ async function saveDrawnSignature() {
   }
 }
 
-// Password Change
 async function handleChangePasswordSubmit(e) {
   e.preventDefault();
   const form = e.target;
@@ -1203,7 +1401,6 @@ async function handleChangePasswordSubmit(e) {
   }
 }
 
-// Backup & Settings
 async function triggerBackupExport() {
   try {
     const res = await fetch('/api/v1/backups/export', { headers: { Authorization: `Bearer ${AppState.authToken}` } });
@@ -1225,7 +1422,7 @@ async function handleBackupRestore(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  if (!(await showConfirm('Restore Backup','Restoring this backup will replace current data. Continue?','Restore'))) return;
+  if (!(await showConfirm('Restore Backup', 'Restoring this backup will replace current data. Continue?', 'Restore'))) return;
 
   const formData = new FormData();
   formData.append('file', file);
@@ -1241,3 +1438,4 @@ async function handleBackupRestore(e) {
     showToast(err.message, 'error');
   }
 }
+

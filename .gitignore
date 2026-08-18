@@ -1,0 +1,23 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+Thumbs.db
+
+# Local data — never commit live databases or uploads
+storage/*.db
+storage/*.db-shm
+storage/*.db-wal
+storage/uploads/
+storage/documents/
+storage/backups/
+
+# Build artifacts
+dist/
+build/
+*.spec.bak
