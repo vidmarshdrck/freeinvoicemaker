@@ -191,14 +191,14 @@ export function SettingsView() {
               onClick={() => {
                 resetDemo();
                 setConfirmReset(false);
-                toast.success("Demo workspace restored");
+                toast.success("Sample workspace restored");
               }}
             >
               Confirm reset
             </Button>
           ) : (
             <Button variant="quiet" className="self-start" onClick={() => setConfirmReset(true)}>
-              Reset to the demo workspace
+              Reset to sample workspace
             </Button>
           )}
         </section>
@@ -206,8 +206,7 @@ export function SettingsView() {
         <section className="rounded-xl border border-line bg-surface p-4">
           <h2 className="font-display text-lg font-semibold">Cloud backup</h2>
           <p className="mt-2 text-sm text-muted">
-            Free Invoice Maker does not upload your invoices. A paid plan, hosted by the project owner, can
-            keep a copy if this device is lost. There is no checkout here yet.
+            Cloud sync is not connected. Download a backup to keep a separate copy.
           </p>
           {cloudEmail ? (
             <p className="mt-3 text-sm text-success">Waitlist saved on this device for {cloudEmail}.</p>

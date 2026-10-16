@@ -1,0 +1,45 @@
+import {test,expect} from '@playwright/test';
+const url=process.env.PREVIEW_URL || 'http://127.0.0.1:5176/freeinvoicemaker/grok/';
+for(const width of [360,390,1440]) test(`delete can be safely cancelled ${width}`,async({browser})=>{
+ const context=await browser.newContext({viewport:{width,height:844}});
+ const page=await context.newPage(); await page.goto(url);
+ await page.getByRole('tab',{name:'Receipts',exact:true}).click();
+ await page.getByRole('button',{name:'New Receipt',exact:true}).first().click();
+ const storage=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('fim-grok-preview-sandbox-v1')!).state.documents);
+ const before=await storage();
+ const number=await page.getByLabel('Document number',{exact:true}).inputValue();
+ const trigger=page.getByRole('button',{name:'Delete',exact:true});
+ await trigger.click();
+ const dialog=page.getByRole('dialog');
+ await expect(dialog).toBeVisible();
+ await expect(dialog).toContainText(`Receipt ${number}`);
+ const cancel=dialog.getByRole('button',{name:'Cancel',exact:true});
+ const remove=dialog.getByRole('button',{name:'Delete',exact:true});
+ await expect(cancel).toBeFocused();
+ expect(await storage()).toEqual(before);
+ for(const button of [cancel,remove]) {
+  await expect(button).toBeInViewport();
+  expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+ }
+ await page.screenshot({path:`/home/shadrickvidmar/paperclip-handoffs/fim-delete-${process.env.QA_STAGE || 'before'}-${width}.png`});
+ await page.keyboard.press('Shift+Tab'); await expect(remove).toBeFocused();
+ await page.keyboard.press('Tab'); await expect(cancel).toBeFocused();
+ await page.keyboard.press('Enter'); await expect(dialog).not.toBeVisible();
+ await expect(trigger).toBeFocused();
+ expect(await storage()).toEqual(before);
+ await page.reload(); expect(await storage()).toEqual(before);
+ await trigger.click(); await cancel.click();
+ await expect(dialog).not.toBeVisible();
+ await page.reload(); expect(await storage()).toEqual(before);
+ await trigger.click(); await page.keyboard.press('Escape');
+ await expect(dialog).not.toBeVisible(); await expect(trigger).toBeFocused();
+ expect(await storage()).toEqual(before);
+ await trigger.click(); await page.mouse.click(1,1);
+ await expect(dialog).not.toBeVisible();
+ expect(await storage()).toEqual(before);
+ await trigger.click(); await remove.click();
+ await expect(dialog).not.toBeVisible();
+ await page.reload();
+ expect(await storage()).toEqual(before.filter((doc:{number:string})=>doc.number!==number));
+ await context.close();
+});

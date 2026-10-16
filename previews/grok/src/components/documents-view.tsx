@@ -295,24 +295,10 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
                 <Copy className="size-4" />
                 Duplicate
               </Button>
-              {confirmDelete ? (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => {
-                    deleteDoc(doc.id);
-                    setConfirmDelete(false);
-                    toast.success("Document deleted");
-                  }}
-                >
-                  Confirm delete
-                </Button>
-              ) : (
-                <Button variant="quiet" size="sm" onClick={() => setConfirmDelete(true)}>
-                  <Trash2 className="size-4" />
-                  Delete
-                </Button>
-              )}
+              <Button variant="quiet" size="sm" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="size-4" />
+                Delete
+              </Button>
             </div>
           </div>
 
@@ -552,12 +538,12 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
             </label>
           </section>
           <p className="pb-2 text-xs text-muted">
-            Stored on this device. Nothing is uploaded unless you export a backup.
+            Saved on this device. No cloud sync. Download a backup to keep a separate copy.
           </p>
         </div>
       </div>
 
-      <div className="flex gap-2 border-t border-line bg-elevated p-3 md:hidden">
+      <div role="toolbar" aria-label="Document actions" className="document-actions flex gap-2 border-t border-line bg-elevated p-3 md:hidden">
         <NewMenu drop="up" />
         <Button className="flex-1" onClick={save}>
           <Save className="size-4" />
@@ -569,6 +555,17 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
         </Button>
       </div>
 
+      {confirmDelete ? (
+        <DeleteDialog
+          label={`${DOC_LABEL[doc.type]} ${doc.number}`}
+          onCancel={() => setConfirmDelete(false)}
+          onDelete={() => {
+            deleteDoc(doc.id);
+            setConfirmDelete(false);
+            toast.success("Document deleted");
+          }}
+        />
+      ) : null}
       {preview
         ? createPortal(
             <div className="paper-stage">
@@ -595,6 +592,43 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
           )
         : null}
     </>
+  );
+}
+
+function DeleteDialog({ label, onCancel, onDelete }: {
+  label: string; onCancel: () => void; onDelete: () => void;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current!;
+    const trigger = document.activeElement as HTMLElement | null;
+    dialog.showModal();
+    return () => { dialog.close(); trigger?.focus(); };
+  }, []);
+  return createPortal(
+    <dialog ref={ref} className="delete-dialog rounded-xl border border-line bg-elevated p-5 text-fg shadow-2xl"
+      aria-labelledby="delete-title" aria-describedby="delete-description"
+      onCancel={(event) => { event.preventDefault(); onCancel(); }}
+      onKeyDown={(event) => {
+        if (event.key !== "Tab") return;
+        const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>("button");
+        const first = buttons[0];
+        const last = buttons[buttons.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }}
+      onClick={(event) => {
+        if (event.target !== event.currentTarget) return;
+        const box = event.currentTarget.getBoundingClientRect();
+        if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) onCancel();
+      }}>
+      <h2 id="delete-title" className="font-display text-xl font-semibold">Delete {label}?</h2>
+      <p id="delete-description" className="mt-2 text-sm text-muted">This removes only this document from this device. This cannot be undone.</p>
+      <div className="mt-5 flex justify-end gap-3">
+        <Button autoFocus onClick={onCancel}>Cancel</Button>
+        <Button variant="danger" onClick={onDelete}>Delete</Button>
+      </div>
+    </dialog>, document.body,
   );
 }
 

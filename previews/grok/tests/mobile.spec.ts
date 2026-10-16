@@ -4,7 +4,7 @@ for(const width of [360,390,1440]) test(`DEMO creation totals receipt payments p
  const context=await browser.newContext({viewport:{width,height:844},colorScheme:'dark'});
  const page=await context.newPage(); const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(url);
- await expect(page.getByText('DEMO · Browser-local sandbox',{exact:true})).toBeVisible();
+ await expect(page.getByText('DEMO · Browser-local sandbox',{exact:true})).toHaveCount(0);
  await expect(page.getByRole('tablist',{name:'Document types'})).toBeVisible();
  for(const [plural,type] of [['Invoices','Invoice'],['Receipts','Receipt'],['Estimates','Estimate']]){
   await page.getByRole('tab',{name:plural,exact:true}).click();

@@ -38,6 +38,26 @@ export function AppShell() {
     void useStore.persist.rehydrate();
   }, []);
 
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => {
+      // Mobile keyboards can shrink the visual viewport without resizing layout.
+      // Do not treat pinch zoom as a keyboard.
+      const inset = viewport.scale === 1
+        ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop) : 0;
+      document.documentElement.style.setProperty("--keyboard-inset", `${inset}px`);
+    };
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+      document.documentElement.style.removeProperty("--keyboard-inset");
+    };
+  }, []);
+
   function openView(next: ViewId) {
     setView(next);
     setMenuOpen(false);
@@ -76,7 +96,6 @@ export function AppShell() {
           <ThemeToggle />
           {view === "documents" ? <DocumentActions /> : null}
         </header>
-        <p className="shrink-0 border-b border-line bg-elevated px-4 py-1 text-xs text-muted">DEMO · Browser-local sandbox</p>
         <div className="flex min-h-0 flex-1">
           <Sidebar view={view} onNavigate={openView} className="hidden md:flex" />
           <div id="main" className="flex min-h-0 min-w-0 flex-1">
@@ -153,11 +172,8 @@ function Sidebar({
         })}
       </nav>
       <div className="m-3 rounded-xl border border-line bg-surface p-3">
-        <p className="text-sm font-medium">Data stored locally</p>
-        <p className="mt-1 flex items-center gap-2 text-xs text-success">
-          <span className="size-2 rounded-full bg-success" aria-hidden="true" />
-          Secure & private
-        </p>
+        <p className="text-sm font-medium">Saved on this device</p>
+        <p className="mt-1 text-xs text-muted">No cloud sync</p>
       </div>
     </aside>
   );

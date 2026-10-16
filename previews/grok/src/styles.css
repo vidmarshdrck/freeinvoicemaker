@@ -217,11 +217,29 @@ html[data-theme] .field, html[data-theme] .quiet-input { color-scheme: inherit; 
 }
 
 @media screen and (max-width: 767px) {
+  .editor-pane:has(.document-actions) {
+    padding-bottom: calc(69px + env(safe-area-inset-bottom, 0px) + var(--keyboard-inset, 0px));
+  }
+  .document-actions {
+    position: fixed;
+    inset: auto 0 var(--keyboard-inset, 0px);
+    z-index: 20;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .document-actions button { min-height: 44px; }
   .paper { padding-left: 1rem; padding-right: 1rem; }
   .paper .paper-banner { margin-left: -1rem; margin-right: -1rem; padding-left: 1rem; padding-right: 1rem; }
   .paper table { font-size: 0.75rem; }
   .paper th:not(:last-child), .paper td:not(:last-child) { padding-right: 0.375rem; }
 }
+
+.delete-dialog {
+  margin: auto;
+  width: min(28rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+}
+.delete-dialog::backdrop { background: rgb(0 0 0 / 65%); }
 
 @media print {
   .no-print {
