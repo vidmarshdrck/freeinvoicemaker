@@ -12,6 +12,7 @@ import {
 import { Toaster } from "sonner";
 import { cn } from "@/lib/cn";
 import { useStore, type ViewId } from "@/lib/invoice-store";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { ApiView } from "@/components/api-view";
 import { ClientsView } from "@/components/clients-view";
 import { DocumentsView, DocumentActions } from "@/components/documents-view";
@@ -20,7 +21,7 @@ import { SettingsView } from "@/components/settings-view";
 import { TemplatesView } from "@/components/templates-view";
 
 const NAV: { id: ViewId; label: string; icon: typeof FileText }[] = [
-  { id: "documents", label: "Invoices", icon: FileText },
+  { id: "documents", label: "Documents", icon: FileText },
   { id: "clients", label: "Clients", icon: Users },
   { id: "items", label: "Items", icon: Package },
   { id: "templates", label: "Templates", icon: LayoutTemplate },
@@ -72,8 +73,10 @@ export function AppShell() {
               OPEN SOURCE
             </span>
           </div>
+          <ThemeToggle />
           {view === "documents" ? <DocumentActions /> : null}
         </header>
+        <p className="shrink-0 border-b border-line bg-elevated px-4 py-1 text-xs text-muted">DEMO · Browser-local sandbox</p>
         <div className="flex min-h-0 flex-1">
           <Sidebar view={view} onNavigate={openView} className="hidden md:flex" />
           <div id="main" className="flex min-h-0 min-w-0 flex-1">
@@ -110,7 +113,7 @@ export function AppShell() {
           </div>
         </div>
       ) : null}
-      <Toaster theme="dark" position="bottom-center" />
+      <Toaster theme="system" position="bottom-center" />
     </>
   );
 }

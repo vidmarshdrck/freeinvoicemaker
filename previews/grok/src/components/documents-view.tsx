@@ -30,9 +30,9 @@ import {
 const FILTERS: { id: DocType | "all"; label: string }[] = [
   { id: "all", label: "All" },
   { id: "invoice", label: "Invoices" },
-  { id: "quotation", label: "Quotes" },
-  { id: "estimate", label: "Estimates" },
   { id: "receipt", label: "Receipts" },
+  { id: "estimate", label: "Estimates" },
+  { id: "quotation", label: "Quotations" },
 ];
 
 const METHODS = ["Bank transfer", "Cash", "Card", "Mobile money", "Other"];
@@ -86,7 +86,11 @@ export function DocumentsView() {
   });
 
   return (
-    <div data-pane={pane} className="flex min-h-0 min-w-0 flex-1">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div role="tablist" aria-label="Document types" className="flex shrink-0 gap-2 overflow-x-auto border-b border-line bg-elevated px-3 py-2">
+        {FILTERS.map((item) => <button key={item.id} role="tab" type="button" aria-selected={filter === item.id} onClick={() => { setFilter(item.id); setPane("list"); }} className={cn("h-11 shrink-0 rounded-full px-3 text-sm", filter === item.id ? "bg-primary text-on-primary" : "bg-surface text-muted")}>{item.label}</button>)}
+      </div>
+      <div data-pane={pane} className="flex min-h-0 min-w-0 flex-1">
       <section className="list-pane" aria-label="Documents">
         <div className="flex items-center gap-2 border-b border-line p-3">
           <label className="relative min-w-0 flex-1">
@@ -102,23 +106,6 @@ export function DocumentsView() {
           <div className="md:hidden">
             <NewMenu />
           </div>
-        </div>
-        <div className="flex gap-2 overflow-x-auto px-3 py-3">
-          {FILTERS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setFilter(item.id)}
-              className={cn(
-                "h-10 shrink-0 rounded-full px-3 text-sm",
-                filter === item.id
-                  ? "bg-primary text-on-primary"
-                  : "bg-surface text-muted",
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
           {filtered.length === 0 ? (
@@ -164,6 +151,7 @@ export function DocumentsView() {
           <EmptyState onShowList={() => setPane("list")} />
         )}
       </section>
+      </div>
     </div>
   );
 }
@@ -503,7 +491,7 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
             </div>
           </section>
 
-          {doc.type === "invoice" ? (
+          {doc.type === "invoice" || doc.type === "receipt" ? (
             <section className="rounded-xl border border-line bg-surface p-4">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-sm text-muted">Payments</h2>
@@ -795,7 +783,9 @@ function TotalRow({ label, value }: { label: string; value: string }) {
 function NewMenu({ drop = "down" }: { drop?: "up" | "down" }) {
   const createDoc = useStore((state) => state.createDoc);
   const [open, setOpen] = useState(false);
-  const types: DocType[] = ["invoice", "quotation", "estimate", "receipt"];
+  const filter = useStore((state) => state.filter);
+  const types: DocType[] = ["invoice", "receipt", "estimate", "quotation"];
+  if (filter !== "all") return <Button onClick={() => createDoc(filter)}><Plus className="size-4" />New {DOC_LABEL[filter]}</Button>;
 
   return (
     <div className={cn("relative", open && "z-40")}>
@@ -839,12 +829,12 @@ function NewMenu({ drop = "down" }: { drop?: "up" | "down" }) {
 
 function statusTone(status: DocStatus) {
   if (status === "overdue" || status === "void") return "text-danger";
-  if (status === "sent") return "text-primary";
+  if (status === "sent" || status === "draft") return "text-warning";
   return "text-success";
 }
 
 function statusChip(status: DocStatus) {
   if (status === "overdue" || status === "void") return "bg-danger/15 text-danger";
-  if (status === "sent") return "bg-primary/15 text-primary";
+  if (status === "sent" || status === "draft") return "bg-warning/15 text-warning";
   return "bg-success/15 text-success";
 }

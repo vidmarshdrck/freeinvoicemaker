@@ -767,7 +767,7 @@ export const useStore = create<Store>()(
       askExport: () => set((state) => ({ exportTick: state.exportTick + 1 })),
     }),
     {
-      name: "fim-workspace-v1",
+      name: "fim-grok-preview-sandbox-v1",
       skipHydration: true,
       partialize: (state) => ({
         business: state.business,

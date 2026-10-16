@@ -16,6 +16,7 @@
   --color-on-primary: #ffffff;
   --color-success: #34d399;
   --color-danger: #f07178;
+  --color-warning: #fb923c;
 
   --color-paper: #ffffff;
   --color-ink: #122033;
@@ -27,9 +28,25 @@
   --radius-lg: 1rem;
 }
 
+html[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #f5f7fb;
+  --color-elevated: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-raised: #edf2fa;
+  --color-line: #d7e0ed;
+  --color-fg: #122033;
+  --color-muted: #52647c;
+  --color-success: #087f5b;
+  --color-danger: #c0303d;
+  --color-warning: #a94b05;
+}
+html[data-theme="dark"] { color-scheme: dark; }
+html[data-theme] .field, html[data-theme] .quiet-input { color-scheme: inherit; }
+
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light dark;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -73,7 +90,7 @@
 @layer components {
   .field,
   .quiet-input {
-    color-scheme: dark;
+    color-scheme: light dark;
   }
 
   .field {
@@ -150,6 +167,14 @@
     flex: 1;
     overflow: auto;
     padding: 1.5rem 1rem 2rem;
+  }
+
+  .paper {
+    background: #ffffff;
+    color: #000000;
+    color-scheme: light;
+    --color-ink: #000000;
+    overflow-wrap: anywhere;
   }
 
   .paper[data-template="ledger"] {
