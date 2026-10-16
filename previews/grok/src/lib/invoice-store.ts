@@ -142,6 +142,7 @@ interface Workspace {
 }
 
 interface Actions {
+  createExampleBusiness: () => void;
   addBusiness: () => void;
   switchBusiness: (id: string) => void;
   setView: (view: ViewId) => void;
@@ -518,14 +519,25 @@ const documentsSeed: Doc[] = [
 ];
 
 export function seedWorkspace(): Workspace {
+  const now = new Date();
+  const dateAt = (day: number) => `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(Math.max(1,Math.min(day,now.getDate()))).padStart(2,'0')}`;
+  const examples = documentsSeed.map((original): Doc => ({
+    ...structuredClone(original), number: original.number.replace('2024',String(now.getFullYear())),
+    issueDate: dateAt(1), dueDate: original.id === 'doc-overdue' ? dateAt(now.getDate()-2) : dateAt(now.getDate()),
+    payments: original.payments.map(p=>({...p,date:dateAt(2)})),
+    businessId: 'business-default', issuer: {...businessSeed},
+  }));
+  const paid: Doc = {...structuredClone(examples[1]), id:'doc-paid-example', number:`INV-${now.getFullYear()}-0016`,status:'paid',
+    payments:[{id:'pay-example',amount:totals(examples[1]).total,date:dateAt(3),method:'Bank transfer',reference:'Example payment'}]};
+  examples.push(paid);
   return {
     currentBusinessId: "business-default",
     profiles: {},
-    usedNumbers: documentsSeed.map(doc => doc.number),
+    usedNumbers: examples.map(doc => doc.number),
     business: { ...businessSeed },
     clients: clientsSeed,
     items: itemsSeed,
-    documents: documentsSeed.map(doc => ({ ...doc, businessId: "business-default", issuer: { ...businessSeed } })),
+    documents: examples,
     apiKeys: [],
     defaultTemplate: "ledger",
     cloudEmail: null,
@@ -557,6 +569,14 @@ export const useStore = create<Store>()(
   persist(
     (set, get) => ({
       ...seedWorkspace(),
+      createExampleBusiness: () => {
+        const state = get(), id = uid('business-example'), seed = seedWorkspace();
+        const business = {...seed.business, name:'Example business · fictional data', currency:'ZMW', email:'billing@example.test',website:'example.test'};
+        set({...profileData(seed), business, currentBusinessId:id,
+          documents:seed.documents.map(d=>({...d,businessId:id,issuer:{...business}})),
+          profiles:{...state.profiles,[state.currentBusinessId]:profileData(state)},
+          activeDocId:null,activeClientId:null,pane:'list',filter:'all',query:'',view:'summaries'});
+      },
       addBusiness: () => {
         const state = get();
         const id = uid("business");

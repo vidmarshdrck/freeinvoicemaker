@@ -19,7 +19,7 @@ test('business profiles isolate documents and preserve issuer across edits and r
  await page.reload(); await expect(page.getByRole('heading',{name:'Receipt',exact:true})).toBeVisible();
  await nav(page,'Settings'); await page.getByLabel('Name',{exact:true}).fill('Beta Renamed');
  await page.getByLabel('Current business',{exact:true}).selectOption({label:'Alpha Legal'});
- await expect(page.getByText('4 documents on this device.',{exact:true})).toBeVisible();
+ await expect(page.getByText('5 documents on this device.',{exact:true})).toBeVisible();
  await page.getByLabel('Current business',{exact:true}).selectOption({label:'Beta Renamed'});
  await expect(page.getByText('2 documents on this device.',{exact:true})).toBeVisible();
  await nav(page,'Documents'); await page.getByRole('button',{name:new RegExp('Client Two')}).first().click();

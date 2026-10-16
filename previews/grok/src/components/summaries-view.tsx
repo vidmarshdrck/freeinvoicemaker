@@ -16,6 +16,7 @@ export function SummariesView() {
    <label className="flex flex-col gap-1 text-sm">From<input aria-label="Summary start date" className="rounded-lg border border-line bg-surface p-2" type="date" value={range.start} onChange={e=>setRange({...range,start:e.target.value})}/></label>
    <label className="flex flex-col gap-1 text-sm">To<input aria-label="Summary end date" className="rounded-lg border border-line bg-surface p-2" type="date" value={range.end} onChange={e=>setRange({...range,end:e.target.value})}/></label>
   </div>
+  <p className="mb-4 text-sm text-muted">Need sample figures? <button type="button" className="rounded-lg border border-line px-3 py-2 text-primary" onClick={()=>useStore.getState().createExampleBusiness()}>Try current-month examples</button> Creates a separate fictional business; your existing documents are not changed.</p>
   {!valid && <p role="alert">Choose a valid start and end date.</p>}
   <p className="mb-4 text-sm text-muted">Payments use recorded payment dates. Balances include invoices issued on or before the selected end date, less recorded payments through that date. Drafts, voids, estimates and quotations are excluded. Different currencies are never combined.</p>
   {valid && !groups.length && <p className="rounded-xl border border-line bg-surface p-5">No issued invoices or receipts to summarize.</p>}
