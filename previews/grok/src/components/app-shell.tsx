@@ -19,9 +19,11 @@ import { DocumentsView, DocumentActions } from "@/components/documents-view";
 import { ItemsView } from "@/components/items-view";
 import { SettingsView } from "@/components/settings-view";
 import { TemplatesView } from "@/components/templates-view";
+import { SummariesView } from "@/components/summaries-view";
 
 const NAV: { id: ViewId; label: string; icon: typeof FileText }[] = [
   { id: "documents", label: "Documents", icon: FileText },
+  { id: "summaries", label: "Summaries", icon: FileText },
   { id: "clients", label: "Clients", icon: Users },
   { id: "items", label: "Items", icon: Package },
   { id: "templates", label: "Templates", icon: LayoutTemplate },
@@ -81,6 +83,7 @@ export function AppShell() {
           <Sidebar view={view} onNavigate={openView} className="hidden md:flex" />
           <div id="main" className="flex min-h-0 min-w-0 flex-1">
             {view === "documents" ? <DocumentsView /> : null}
+            {view === "summaries" ? <SummariesView key={currentBusinessId} /> : null}
             {view === "clients" ? <ClientsView /> : null}
             {view === "items" ? <ItemsView /> : null}
             {view === "templates" ? <TemplatesView /> : null}

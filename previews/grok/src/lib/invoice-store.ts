@@ -11,7 +11,7 @@ export type DocStatus =
   | "issued"
   | "void";
 export type TemplateId = "ledger" | "paper" | "signal";
-export type ViewId = "documents" | "clients" | "items" | "templates" | "settings" | "api";
+export type ViewId = "summaries" | "documents" | "clients" | "items" | "templates" | "settings" | "api";
 export type Pane = "list" | "editor";
 
 export interface Business {
