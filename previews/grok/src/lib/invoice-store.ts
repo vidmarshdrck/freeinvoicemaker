@@ -644,10 +644,10 @@ export const useStore = create<Store>()(
           clientId: null,
           billTo: emptyBill(),
           issueDate,
-          dueDate: addDays(issueDate, 14),
+          dueDate: type === "receipt" ? issueDate : addDays(issueDate, 14),
           taxRate: state.business.defaultTax,
           template: state.defaultTemplate,
-          notes: state.business.defaultNotes,
+          notes: type === "receipt" ? "Received with thanks." : type === "estimate" || type === "quotation" ? "Valid until the date shown. No payment is due until invoiced." : state.business.defaultNotes,
           lines: [{ id: uid("line"), name: "", description: "", qty: 1, rate: 0 }],
           payments: [],
         };

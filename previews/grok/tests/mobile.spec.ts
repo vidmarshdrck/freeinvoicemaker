@@ -27,6 +27,7 @@ for(const width of [360,390,1440]) test(`DEMO creation totals receipt payments p
   await expect(paper).toHaveCSS('background-color','rgb(255, 255, 255)');
   await expect(paper).toHaveCSS('color','rgb(0, 0, 0)');
   await expect(paper).toContainText('DEMO Customer');
+  await expect(paper.locator('tbody td').nth(3)).toHaveCSS('white-space','nowrap');
   await page.screenshot({path:`/home/shadrickvidmar/paperclip-handoffs/fim-grok-${width}-${type.toLowerCase()}-paper.png`});
   await page.pdf({path:`/home/shadrickvidmar/paperclip-handoffs/fim-grok-${width}-${type.toLowerCase()}.pdf`,format:'A4'});
   await page.getByRole('button',{name:'Close',exact:true}).click();

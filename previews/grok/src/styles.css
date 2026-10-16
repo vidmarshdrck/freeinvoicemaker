@@ -177,6 +177,8 @@ html[data-theme] .field, html[data-theme] .quiet-input { color-scheme: inherit; 
     overflow-wrap: anywhere;
   }
 
+  .paper th:nth-child(n+3), .paper td:nth-child(n+3) { white-space: nowrap; overflow-wrap: normal; }
+
   .paper[data-template="ledger"] {
     box-shadow: inset 4px 0 0 var(--color-primary);
   }
