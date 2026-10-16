@@ -3,6 +3,7 @@ const url=process.env.PREVIEW_URL || 'http://127.0.0.1:5176/freeinvoicemaker/gro
 for(const width of [360,390,1440]) test(`delete can be safely cancelled ${width}`,async({browser})=>{
  const context=await browser.newContext({viewport:{width,height:844}});
  const page=await context.newPage(); await page.goto(url);
+ await page.getByRole('button',{name:'Documents',exact:true}).filter({visible:true}).last().click();
  await page.getByRole('tab',{name:'Receipts',exact:true}).click();
  await page.getByRole('button',{name:'New Receipt',exact:true}).first().click();
  const storage=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('fim-grok-preview-sandbox-v1')!).state.documents);

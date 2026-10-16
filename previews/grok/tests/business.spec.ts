@@ -1,0 +1,37 @@
+import {test,expect} from '@playwright/test';
+const url=process.env.PREVIEW_URL || 'http://127.0.0.1:5176/freeinvoicemaker/grok/';
+test.use({viewport:{width:390,height:844}});
+async function nav(page:any,name:string){await page.getByRole('button',{name:'Open menu',exact:true}).click(); await page.getByRole('navigation',{name:'Primary'}).filter({visible:true}).getByRole('button',{name,exact:true}).click();}
+test('business profiles isolate documents and preserve issuer across edits and reload',async({page})=>{
+ await page.goto(url); await nav(page,'Settings');
+ await expect(page.getByLabel('Current business',{exact:true})).toBeVisible();
+ await page.getByLabel('Name',{exact:true}).fill('Alpha Legal');
+ await page.getByRole('button',{name:'Add business',exact:true}).click();
+ await expect(page.getByText('0 documents on this device.',{exact:true})).toBeVisible();
+ await page.getByLabel('Name',{exact:true}).fill('Beta Studio');
+ await nav(page,'Documents');
+ await page.getByRole('tab',{name:'Receipts',exact:true}).click();
+ await page.getByRole('button',{name:'New Receipt',exact:true}).last().click();
+ await page.getByLabel('Client name',{exact:true}).fill('Client Two');
+ const number=await page.getByLabel('Document number',{exact:true}).inputValue();
+ await page.getByRole('button',{name:'Duplicate',exact:true}).click();
+ await expect(page.getByLabel('Document number',{exact:true})).not.toHaveValue(number);
+ await page.reload(); await expect(page.getByRole('heading',{name:'Receipt',exact:true})).toBeVisible();
+ await nav(page,'Settings'); await page.getByLabel('Name',{exact:true}).fill('Beta Renamed');
+ await page.getByLabel('Current business',{exact:true}).selectOption({label:'Alpha Legal'});
+ await expect(page.getByText('4 documents on this device.',{exact:true})).toBeVisible();
+ await page.getByLabel('Current business',{exact:true}).selectOption({label:'Beta Renamed'});
+ await expect(page.getByText('2 documents on this device.',{exact:true})).toBeVisible();
+ await nav(page,'Documents'); await page.getByRole('button',{name:new RegExp('Client Two')}).first().click();
+ await expect(page.getByLabel('Business name',{exact:true})).toHaveValue('Beta Studio');
+ await page.reload(); await expect(page.getByLabel('Business name',{exact:true})).toHaveValue('Beta Studio');
+ const state=await page.evaluate(()=>JSON.parse(localStorage.getItem('fim-grok-preview-sandbox-v1')!));
+ expect(state.version).toBe(2); expect(state.state.documents.every((d:any)=>d.businessId===state.state.currentBusinessId)).toBeTruthy();
+ const removed=await page.getByLabel('Document number',{exact:true}).inputValue();
+ await page.getByRole('button',{name:'Delete',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Delete',exact:true}).click();
+ await page.getByRole('button',{name:'New Receipt',exact:true}).last().click();
+ const next=await page.getByLabel('Document number',{exact:true}).inputValue();
+ expect(Number(next.split('-').at(-1))).toBeGreaterThan(Number(removed.split('-').at(-1)));
+ await expect(page.getByLabel('Business name',{exact:true})).toHaveValue('Beta Renamed');
+ await page.reload();await expect(page.getByLabel('Business name',{exact:true})).toHaveValue('Beta Renamed');
+});

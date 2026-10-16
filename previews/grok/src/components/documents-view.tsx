@@ -12,13 +12,15 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Paper } from "@/components/paper";
+import { money } from "@/components/money";
 import { cn } from "@/lib/cn";
 import {
   DOC_LABEL,
+  documentFilename,
+  money as formatMoney,
   STATUSES,
   lineAmount,
   longDate,
-  money,
   totals,
   useStore,
   type Doc,
@@ -38,28 +40,8 @@ const FILTERS: { id: DocType | "all"; label: string }[] = [
 const METHODS = ["Bank transfer", "Cash", "Card", "Mobile money", "Other"];
 
 export function DocumentActions() {
-  const hasDoc = useStore((state) => state.documents.some((doc) => doc.id === state.activeDocId));
-  const touch = useStore((state) => state.touch);
-  const askExport = useStore((state) => state.askExport);
-
-  return (
-    <div className="ml-auto hidden items-center gap-2 md:flex">
-      <NewMenu />
-      <Button
-        onClick={() => {
-          touch();
-          toast.success("Saved on this device");
-        }}
-      >
-        <Save className="size-4" />
-        Save
-      </Button>
-      <Button variant="primary" disabled={!hasDoc} onClick={() => askExport()}>
-        <Download className="size-4" />
-        Export PDF
-      </Button>
-    </div>
-  );
+  const pane = useStore(state => state.pane);
+  return pane === "list" ? <div className="ml-auto hidden md:block"><NewMenu /></div> : null;
 }
 
 export function DocumentsView() {
@@ -69,6 +51,7 @@ export function DocumentsView() {
   const filter = useStore((state) => state.filter);
   const query = useStore((state) => state.query);
   const currency = useStore((state) => state.business.currency);
+  const currentBusinessName = useStore(state => state.business.name);
   const setPane = useStore((state) => state.setPane);
   const setFilter = useStore((state) => state.setFilter);
   const setQuery = useStore((state) => state.setQuery);
@@ -87,9 +70,10 @@ export function DocumentsView() {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <div role="tablist" aria-label="Document types" className="flex shrink-0 gap-2 overflow-x-auto border-b border-line bg-elevated px-3 py-2">
+      {pane === "list" ? <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-2"><p className="min-w-0 truncate text-sm text-muted">Current business: <span className="text-fg">{currentBusinessName || "Untitled business"}</span></p><Button variant="quiet" onClick={() => useStore.getState().setView("settings")}>Switch business</Button></div> : null}
+      {pane === "list" ? <div role="tablist" aria-label="Document types" className="flex shrink-0 gap-2 overflow-x-auto border-b border-line bg-elevated px-3 py-2">
         {FILTERS.map((item) => <button key={item.id} role="tab" type="button" aria-selected={filter === item.id} onClick={() => { setFilter(item.id); setPane("list"); }} className={cn("h-11 shrink-0 rounded-full px-3 text-sm", filter === item.id ? "bg-primary text-on-primary" : "bg-surface text-muted")}>{item.label}</button>)}
-      </div>
+      </div> : null}
       <div data-pane={pane} className="flex min-h-0 min-w-0 flex-1">
       <section className="list-pane" aria-label="Documents">
         <div className="flex items-center gap-2 border-b border-line p-3">
@@ -128,11 +112,11 @@ export function DocumentsView() {
                       <span className="flex items-center justify-between gap-2">
                         <span className="truncate text-sm font-medium">{item.number}</span>
                         <span className="shrink-0 text-sm tabular-nums">
-                          {money(figures.total, currency)}
+                          {money(figures.total, item.issuer?.currency ?? currency)}
                         </span>
                       </span>
                       <span className="flex items-center justify-between gap-2 text-xs text-muted">
-                        <span className="truncate">{item.billTo.name || "No client"}</span>
+                        <span className="truncate">{item.issuer?.name || "Your business"} → {item.billTo.name || "No client"}</span>
                         <span className={statusTone(item.status)}>{item.status}</span>
                       </span>
                     </button>
@@ -146,7 +130,7 @@ export function DocumentsView() {
 
       <section className="editor-pane" aria-label="Document editor">
         {doc ? (
-          <Editor doc={doc} onShowList={() => setPane("list")} />
+          <Editor key={doc.id} doc={doc} onShowList={() => setPane("list")} />
         ) : (
           <EmptyState onShowList={() => setPane("list")} />
         )}
@@ -174,13 +158,13 @@ function EmptyState({ onShowList }: { onShowList: () => void }) {
 }
 
 function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
-  const business = useStore((state) => state.business);
+  const currentBusiness = useStore((state) => state.business);
+  const business = doc.issuer ?? currentBusiness;
   const clients = useStore((state) => state.clients);
   const items = useStore((state) => state.items);
-  const updateBusiness = useStore((state) => state.updateBusiness);
+  const updateBusiness = (patch: Partial<typeof business>) => updateDoc(doc.id, { issuer: { ...business, ...patch } });
   const updateDoc = useStore((state) => state.updateDoc);
   const updateBillTo = useStore((state) => state.updateBillTo);
-  const setDocType = useStore((state) => state.setDocType);
   const applyClient = useStore((state) => state.applyClient);
   const saveBillAsClient = useStore((state) => state.saveBillAsClient);
   const addLine = useStore((state) => state.addLine);
@@ -192,8 +176,6 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
   const duplicateDoc = useStore((state) => state.duplicateDoc);
   const deleteDoc = useStore((state) => state.deleteDoc);
   const touch = useStore((state) => state.touch);
-  const exportTick = useStore((state) => state.exportTick);
-  const seenExport = useRef(exportTick);
   const [preview, setPreview] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
@@ -206,11 +188,13 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
         : "Due Date";
   const dateLabel = doc.type === "receipt" ? "Receipt Date" : doc.type === "invoice" ? "Invoice Date" : "Issue Date";
 
+  const filename = documentFilename(doc, business);
   useEffect(() => {
-    if (exportTick === seenExport.current) return;
-    seenExport.current = exportTick;
-    setPreview(true);
-  }, [exportTick]);
+    if (!preview) return;
+    const original = document.title;
+    document.title = filename;
+    return () => { document.title = original; };
+  }, [preview, filename]);
 
   useEffect(() => {
     if (!preview) return;
@@ -228,7 +212,7 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3 xl:hidden">
+      <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
         <button
           type="button"
           onClick={onShowList}
@@ -237,6 +221,7 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
           <ChevronLeft className="size-4" />
           Documents
         </button>
+        <button title="Switch business in Settings" onClick={() => useStore.getState().setView("settings")} className="min-w-0 max-w-48 truncate text-right text-xs text-muted h-11">Current: {currentBusiness.name || "Untitled business"}</button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-8">
@@ -270,20 +255,6 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
               </select>
             </label>
             <div className="ml-auto flex flex-wrap items-center gap-1">
-              <label className="text-sm text-muted">
-                <span className="sr-only">Document type</span>
-                <select
-                  value={doc.type}
-                  onChange={(event) => setDocType(doc.id, event.target.value as DocType)}
-                  className="quiet-input"
-                >
-                  {(Object.keys(DOC_LABEL) as DocType[]).map((type) => (
-                    <option key={type} value={type}>
-                      {DOC_LABEL[type]}
-                    </option>
-                  ))}
-                </select>
-              </label>
               <Button
                 variant="quiet"
                 size="sm"
@@ -295,15 +266,15 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
                 <Copy className="size-4" />
                 Duplicate
               </Button>
-              <Button variant="quiet" size="sm" onClick={() => setConfirmDelete(true)}>
+              <Button variant="quiet" aria-label="Delete" title="Delete document" className="size-11 p-0" onClick={() => setConfirmDelete(true)}>
                 <Trash2 className="size-4" />
-                Delete
               </Button>
             </div>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
             <Card title="From:">
+              <p className="mb-2 text-xs text-muted">Issuer snapshot. Edits here affect only this document.</p>
               <Quiet
                 label="Business name"
                 value={business.name}
@@ -437,7 +408,7 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
                   <option value="">Add from catalog</option>
                   {items.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.name} · {money(item.price, business.currency)}
+                      {item.name} · {formatMoney(item.price, business.currency)}
                     </option>
                   ))}
                 </select>
@@ -540,19 +511,12 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
           <p className="pb-2 text-xs text-muted">
             Saved on this device. No cloud sync. Download a backup to keep a separate copy.
           </p>
+          <div role="toolbar" aria-label="Document actions" className="document-actions grid grid-cols-2 gap-2 rounded-xl border border-line bg-elevated p-3 sm:grid-cols-3">
+            <Button onClick={save}><Save className="size-4" />Save</Button>
+            <Button className="gap-1 px-2" variant="primary" onClick={() => setPreview(true)}><Download className="size-4" />Download PDF</Button>
+            <div className="col-span-2 sm:col-span-1"><NewMenu drop="up" /></div>
+          </div>
         </div>
-      </div>
-
-      <div role="toolbar" aria-label="Document actions" className="document-actions flex gap-2 border-t border-line bg-elevated p-3 md:hidden">
-        <NewMenu drop="up" />
-        <Button className="flex-1" onClick={save}>
-          <Save className="size-4" />
-          Save
-        </Button>
-        <Button className="flex-1" variant="primary" onClick={() => setPreview(true)}>
-          <Download className="size-4" />
-          PDF
-        </Button>
       </div>
 
       {confirmDelete ? (
@@ -570,7 +534,7 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
         ? createPortal(
             <div className="paper-stage">
               <div className="no-print flex h-16 shrink-0 items-center justify-between gap-3 border-b border-line px-4">
-                <p className="text-sm text-muted">PDF preview</p>
+                <p className="min-w-0 truncate text-sm text-muted" title={`${filename}.pdf`}>PDF preview</p>
                 <div className="flex gap-2">
                   <Button onClick={() => setPreview(false)}>Close</Button>
                   <Button variant="primary" onClick={() => window.print()}>
@@ -583,7 +547,7 @@ function Editor({ doc, onShowList }: { doc: Doc; onShowList: () => void }) {
                 <div className="relative z-10 mx-auto w-full max-w-3xl">
                   <Paper doc={doc} business={business} />
                   <p className="no-print mt-3 text-center text-xs text-muted">
-                    In the print dialog, choose Save as PDF.
+                    In the print dialog, choose Save as PDF. Suggested filename: {filename}.pdf
                   </p>
                 </div>
               </div>
@@ -805,7 +769,7 @@ function DateCard({
   );
 }
 
-function TotalRow({ label, value }: { label: string; value: string }) {
+function TotalRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <p className="flex justify-between py-1 text-muted">
       <span>{label}</span>
@@ -818,6 +782,9 @@ function NewMenu({ drop = "down" }: { drop?: "up" | "down" }) {
   const createDoc = useStore((state) => state.createDoc);
   const [open, setOpen] = useState(false);
   const filter = useStore((state) => state.filter);
+  const pane = useStore((state) => state.pane);
+  const activeType = useStore(state => state.documents.find(doc => doc.id === state.activeDocId)?.type);
+  if (pane === "editor" && activeType) return <Button onClick={() => createDoc(activeType)}><Plus className="size-4" />New {DOC_LABEL[activeType]}</Button>;
   const types: DocType[] = ["invoice", "receipt", "estimate", "quotation"];
   if (filter !== "all") return <Button onClick={() => createDoc(filter)}><Plus className="size-4" />New {DOC_LABEL[filter]}</Button>;
 

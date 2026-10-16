@@ -1,7 +1,8 @@
+import { money } from "@/components/money";
+import type { ReactNode } from "react";
 import {
   DOC_LABEL,
   longDate,
-  money,
   totals,
   type Business,
   type Doc,
@@ -28,9 +29,12 @@ export function Paper({ doc, business }: { doc: Doc; business: Business }) {
         ) : null}
         <div className="flex items-start justify-between gap-6 border-b border-rule pb-6">
           <div>
+            {business.logo && /^data:image\/(png|jpeg|webp);base64,/.test(business.logo) ? <img src={business.logo} alt="Business logo" className="mb-3 h-14 max-w-36 object-contain" /> : null}
             {doc.template === "signal" ? null : (
               <p className="font-display text-2xl font-semibold">{business.name || "Your business"}</p>
             )}
+            {business.legalName && business.legalName !== business.name ? <p className="mt-1 text-sm font-medium">{business.legalName}</p> : null}
+            {business.phone ? <p className="text-sm text-ink-soft">{business.phone}</p> : null}
             {business.address ? <p className="mt-2 text-sm text-ink-soft">{business.address}</p> : null}
             {business.cityLine ? <p className="text-sm text-ink-soft">{business.cityLine}</p> : null}
             {business.email ? <p className="text-sm text-ink-soft">{business.email}</p> : null}
@@ -78,13 +82,13 @@ export function Paper({ doc, business }: { doc: Doc; business: Business }) {
         <tbody>
           {doc.lines.map((line) => (
             <tr key={line.id} className="border-b border-rule">
-              <td className="py-3 pr-3 align-top font-medium">{line.name}</td>
-              <td className="py-3 pr-3 align-top text-ink-soft">{line.description}</td>
-              <td className="py-3 text-right align-top tabular-nums">{line.qty}</td>
-              <td className="py-3 text-right align-top tabular-nums">
+              <td data-label="Item" className="py-3 pr-3 align-top font-medium">{line.name}</td>
+              <td data-label="Description" className="py-3 pr-3 align-top text-ink-soft">{line.description}</td>
+              <td data-label="Qty" className="py-3 text-right align-top tabular-nums">{line.qty}</td>
+              <td data-label="Rate" className="py-3 text-right align-top tabular-nums">
                 {money(line.rate, business.currency)}
               </td>
-              <td className="py-3 text-right align-top tabular-nums">
+              <td data-label="Amount" className="py-3 text-right align-top tabular-nums">
                 {money(line.qty * line.rate, business.currency)}
               </td>
             </tr>
@@ -133,7 +137,7 @@ export function Paper({ doc, business }: { doc: Doc; business: Business }) {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
     <p className="flex justify-between py-0.5 text-ink-soft">
       <span>{label}</span>

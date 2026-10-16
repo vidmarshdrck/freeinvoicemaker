@@ -15,6 +15,8 @@ export type ViewId = "documents" | "clients" | "items" | "templates" | "settings
 export type Pane = "list" | "editor";
 
 export interface Business {
+  legalName?: string;
+  logo?: string;
   name: string;
   address: string;
   cityLine: string;
@@ -75,6 +77,8 @@ export interface BillTo {
 }
 
 export interface Doc {
+  businessId?: string;
+  issuer?: Business;
   id: string;
   type: DocType;
   number: string;
@@ -98,6 +102,9 @@ export interface ApiKey {
 }
 
 export interface BackupFile {
+  schemaVersion?: number;
+  businessId?: string;
+  usedNumbers?: string[];
   kind?: string;
   business?: Business;
   clients?: Client[];
@@ -108,7 +115,16 @@ export interface BackupFile {
   cloudEmail?: string | null;
 }
 
+interface ProfileData {
+  business: Business; clients: Client[]; items: CatalogItem[]; documents: Doc[];
+  apiKeys: ApiKey[]; defaultTemplate: TemplateId; cloudEmail: string | null;
+  usedNumbers: string[];
+}
+
 interface Workspace {
+  currentBusinessId: string;
+  profiles: Record<string, ProfileData>;
+  usedNumbers: string[];
   business: Business;
   clients: Client[];
   items: CatalogItem[];
@@ -123,10 +139,11 @@ interface Workspace {
   filter: DocType | "all";
   query: string;
     revision: number;
-  exportTick: number;
 }
 
 interface Actions {
+  addBusiness: () => void;
+  switchBusiness: (id: string) => void;
   setView: (view: ViewId) => void;
   setPane: (pane: Pane) => void;
   setFilter: (filter: DocType | "all") => void;
@@ -137,7 +154,6 @@ interface Actions {
   updateBusiness: (patch: Partial<Business>) => void;
   updateDoc: (id: string, patch: Partial<Doc>) => void;
   updateBillTo: (id: string, patch: Partial<BillTo>) => void;
-  setDocType: (id: string, type: DocType) => void;
   applyClient: (docId: string, clientId: string) => void;
   saveBillAsClient: (docId: string) => void;
   addLine: (docId: string) => void;
@@ -161,7 +177,6 @@ interface Actions {
   setCloudEmail: (email: string) => void;
   replaceAll: (data: BackupFile) => void;
   resetDemo: () => void;
-  askExport: () => void;
 }
 
 export type Store = Workspace & Actions;
@@ -248,6 +263,22 @@ export function money(amount: number, currency: string) {
   } catch {
     return `${currency} ${(amount || 0).toFixed(2)}`;
   }
+}
+
+export function safeFilePart(value: string, fallback = "Untitled") {
+  const clean = value.normalize("NFKC").replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, "")
+    .replace(/[^\p{L}\p{N}._-]+/gu, "-").replace(/^[. -]+|[. -]+$/g, "");
+  let part = "";
+  for (const char of clean || fallback) {
+    if (new TextEncoder().encode(part + char).length > 60 || Array.from(part).length >= 42) break;
+    part += char;
+  }
+  part = part.replace(/[. -]+$/g, "") || fallback;
+  return /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part) ? `_${part}` : part;
+}
+
+export function documentFilename(doc: Doc, business: Business) {
+  return `${DOC_LABEL[doc.type]}_${safeFilePart(doc.number)}_${safeFilePart((doc.issuer ?? business).name, "Business")}_to_${safeFilePart(doc.billTo.name, "Client")}`;
 }
 
 export function longDate(iso: string) {
@@ -488,10 +519,13 @@ const documentsSeed: Doc[] = [
 
 export function seedWorkspace(): Workspace {
   return {
-    business: businessSeed,
+    currentBusinessId: "business-default",
+    profiles: {},
+    usedNumbers: documentsSeed.map(doc => doc.number),
+    business: { ...businessSeed },
     clients: clientsSeed,
     items: itemsSeed,
-    documents: documentsSeed,
+    documents: documentsSeed.map(doc => ({ ...doc, businessId: "business-default", issuer: { ...businessSeed } })),
     apiKeys: [],
     defaultTemplate: "ledger",
     cloudEmail: null,
@@ -502,7 +536,6 @@ export function seedWorkspace(): Workspace {
     filter: "all",
     query: "",
     revision: 0,
-    exportTick: 0,
   };
 }
 
@@ -510,10 +543,38 @@ function mapDoc(documents: Doc[], id: string, updater: (doc: Doc) => Doc) {
   return documents.map((doc) => (doc.id === id ? updater(doc) : doc));
 }
 
+function profileData(state: Workspace): ProfileData {
+  return { business: state.business, clients: state.clients, items: state.items,
+    documents: state.documents, apiKeys: state.apiKeys, defaultTemplate: state.defaultTemplate,
+    cloudEmail: state.cloudEmail, usedNumbers: state.usedNumbers };
+}
+
+function reservedDocuments(state: Workspace): Doc[] {
+  return [...state.documents, ...state.usedNumbers.map(number => ({ number } as Doc))];
+}
+
 export const useStore = create<Store>()(
   persist(
     (set, get) => ({
       ...seedWorkspace(),
+      addBusiness: () => {
+        const state = get();
+        const id = uid("business");
+        const business: Business = { name: "New business", address: "", cityLine: "", email: "",
+          website: "", phone: "", currency: "ZMW", taxNumber: "", defaultTax: 0,
+          invoicePrefix: "INV", defaultNotes: "", paymentInfo: "" };
+        set({ profiles: { ...state.profiles, [state.currentBusinessId]: profileData(state) },
+          currentBusinessId: id, business, clients: [], items: [], documents: [], apiKeys: [],
+          usedNumbers: [], defaultTemplate: "ledger", cloudEmail: null, activeDocId: null,
+          activeClientId: null, pane: "list", filter: "all", query: "" });
+      },
+      switchBusiness: (id) => {
+        const state = get();
+        if (id === state.currentBusinessId || !state.profiles[id]) return;
+        set({ ...state.profiles[id], currentBusinessId: id,
+          profiles: { ...state.profiles, [state.currentBusinessId]: profileData(state) },
+          activeDocId: null, activeClientId: null, pane: "list", filter: "all", query: "" });
+      },
       setView: (view) => set({ view }),
       setPane: (pane) => set({ pane }),
       setFilter: (filter) => set({ filter }),
@@ -532,14 +593,6 @@ export const useStore = create<Store>()(
           documents: mapDoc(state.documents, id, (doc) => ({
             ...doc,
             billTo: { ...doc.billTo, ...patch },
-          })),
-        })),
-      setDocType: (id, type) =>
-        set((state) => ({
-          documents: mapDoc(state.documents, id, (doc) => ({
-            ...doc,
-            type,
-            status: STATUSES[type].includes(doc.status) ? doc.status : STATUSES[type][0],
           })),
         })),
       applyClient: (docId, clientId) => {
@@ -638,8 +691,10 @@ export const useStore = create<Store>()(
         const issueDate = todayIso();
         const doc: Doc = {
           id: uid("doc"),
+          businessId: state.currentBusinessId,
+          issuer: { ...state.business },
           type,
-          number: nextNumber(state.documents, type, state.business),
+          number: nextNumber(reservedDocuments(state), type, state.business),
           status: type === "receipt" ? "issued" : "draft",
           clientId: null,
           billTo: emptyBill(),
@@ -653,6 +708,7 @@ export const useStore = create<Store>()(
         };
         set({
           documents: [doc, ...state.documents],
+          usedNumbers: [...state.usedNumbers, doc.number],
           activeDocId: doc.id,
           view: "documents",
           pane: "editor",
@@ -666,13 +722,14 @@ export const useStore = create<Store>()(
         const copy: Doc = {
           ...doc,
           id: uid("doc"),
-          number: nextNumber(state.documents, doc.type, state.business),
+          number: nextNumber(reservedDocuments(state), doc.type, state.business),
           status: doc.type === "receipt" ? "issued" : "draft",
           payments: [],
           lines: doc.lines.map((line) => ({ ...line, id: uid("line") })),
         };
         set({
           documents: [copy, ...state.documents],
+          usedNumbers: [...state.usedNumbers, copy.number],
           activeDocId: copy.id,
           pane: "editor",
           view: "documents",
@@ -751,10 +808,11 @@ export const useStore = create<Store>()(
       setCloudEmail: (email) => set({ cloudEmail: email }),
       replaceAll: (data) =>
         set((state) => ({
-          business: data.business ?? state.business,
+          business: data.business ? { ...data.business, phone: data.business.phone ?? "", taxNumber: data.business.taxNumber ?? "" } : state.business,
           clients: data.clients ?? [],
           items: data.items ?? [],
-          documents: data.documents ?? [],
+          documents: (data.documents ?? []).map(doc => ({ ...doc, businessId: state.currentBusinessId, issuer: doc.issuer ?? data.business ?? state.business })),
+          usedNumbers: [...state.usedNumbers, ...(data.usedNumbers ?? []), ...(data.documents ?? []).map(doc => doc.number)],
           apiKeys: data.apiKeys ?? [],
           defaultTemplate: data.defaultTemplate ?? "ledger",
           cloudEmail: data.cloudEmail ?? null,
@@ -763,13 +821,31 @@ export const useStore = create<Store>()(
           view: "documents",
           pane: "editor",
         })),
-      resetDemo: () => set(seedWorkspace()),
-      askExport: () => set((state) => ({ exportTick: state.exportTick + 1 })),
+      resetDemo: () => set(state => {
+        const seed = seedWorkspace();
+        return { ...profileData(seed), documents: seed.documents.map(doc => ({ ...doc, businessId: state.currentBusinessId })),
+          activeDocId: "doc-main", pane: "editor", view: "documents" };
+      }),
     }),
     {
       name: "fim-grok-preview-sandbox-v1",
       skipHydration: true,
+      version: 2,
+      migrate: (persisted) => {
+        const legacy = persisted as Workspace;
+        // Preserve the exact pre-migration data before any v2 persistence.
+        const raw = localStorage.getItem("fim-grok-preview-sandbox-v1");
+        if (raw && !localStorage.getItem("fim-grok-preview-legacy-backup-v1"))
+          localStorage.setItem("fim-grok-preview-legacy-backup-v1", raw);
+        const business = { ...legacy.business, phone: legacy.business?.phone ?? "", taxNumber: legacy.business?.taxNumber ?? "", legalName: legacy.business?.legalName ?? "" };
+        return { ...legacy, business, currentBusinessId: "business-default", profiles: {},
+          usedNumbers: (legacy.documents ?? []).map(doc => doc.number),
+          documents: (legacy.documents ?? []).map(doc => ({ ...doc, businessId: "business-default", issuer: doc.issuer ?? { ...business } })) };
+      },
       partialize: (state) => ({
+        currentBusinessId: state.currentBusinessId,
+        profiles: { ...state.profiles, [state.currentBusinessId]: profileData(state) },
+        usedNumbers: state.usedNumbers,
         business: state.business,
         clients: state.clients,
         items: state.items,
@@ -792,6 +868,9 @@ export const useStore = create<Store>()(
 export function snapshot(state: Store): BackupFile {
   return {
     kind: "free-invoice-maker-backup",
+    schemaVersion: 2,
+    businessId: state.currentBusinessId,
+    usedNumbers: state.usedNumbers,
     business: state.business,
     clients: state.clients,
     items: state.items,

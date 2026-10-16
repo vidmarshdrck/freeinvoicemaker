@@ -5,8 +5,9 @@ for(const width of [360,390,1440]) test(`DEMO creation totals receipt payments p
  const page=await context.newPage(); const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(url);
  await expect(page.getByText('DEMO · Browser-local sandbox',{exact:true})).toHaveCount(0);
- await expect(page.getByRole('tablist',{name:'Document types'})).toBeVisible();
+ await expect(page.getByRole('tablist',{name:'Document types'})).toHaveCount(0);
  for(const [plural,type] of [['Invoices','Invoice'],['Receipts','Receipt'],['Estimates','Estimate']]){
+  await page.getByRole('button',{name:'Documents',exact:true}).filter({visible:true}).last().click();
   await page.getByRole('tab',{name:plural,exact:true}).click();
   await page.getByRole('button',{name:`New ${type}`,exact:true}).first().click();
   await page.getByLabel('Business name',{exact:true}).fill('DEMO Studio');
@@ -21,14 +22,14 @@ for(const width of [360,390,1440]) test(`DEMO creation totals receipt payments p
    await page.getByRole('button',{name:'Add payment',exact:true}).click();
    await expect(page.getByText('Paid in full.',{exact:true})).toBeVisible();
   }
-  await page.getByRole('button',{name:width<768?'PDF':'Export PDF',exact:true}).click();
+  await page.getByRole('button',{name:'Download PDF',exact:true}).click();
   const paper=page.locator('.paper');
   await expect(paper).toBeVisible();
   if(width<768) await expect(paper).toHaveCSS('padding-left','16px');
   await expect(paper).toHaveCSS('background-color','rgb(255, 255, 255)');
   await expect(paper).toHaveCSS('color','rgb(0, 0, 0)');
   await expect(paper).toContainText('DEMO Customer');
-  await expect(paper.locator('tbody td').nth(3)).toHaveCSS('white-space','nowrap');
+  await expect(paper.locator('tbody td').nth(3).locator('.money > span').first()).toHaveCSS('white-space','nowrap');
   await page.screenshot({path:`/home/shadrickvidmar/paperclip-handoffs/fim-grok-${width}-${type.toLowerCase()}-paper.png`});
   await page.pdf({path:`/home/shadrickvidmar/paperclip-handoffs/fim-grok-${width}-${type.toLowerCase()}.pdf`,format:'A4'});
   await page.getByRole('button',{name:'Close',exact:true}).click();

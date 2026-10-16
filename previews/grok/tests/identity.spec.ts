@@ -1,0 +1,24 @@
+import {test,expect} from '@playwright/test';
+const url=process.env.PREVIEW_URL || 'http://127.0.0.1:5176/freeinvoicemaker/grok/';
+test.use({viewport:{width:390,height:844}});
+test('legal identity and safe raster logo persist in document snapshot',async({page})=>{
+ await page.goto(url); await page.getByRole('button',{name:'Open menu',exact:true}).click(); await page.getByRole('button',{name:'Settings',exact:true}).click();
+ await page.getByLabel('Legal name (if different)',{exact:true}).fill('Alpha Limited');
+ await page.getByLabel('Phone',{exact:true}).fill('+260000000000');
+ await page.getByLabel('Tax number',{exact:true}).fill('Optional TIN / 42');
+ await page.getByLabel('Logo image',{exact:true}).setInputFiles({name:'logo.svg',mimeType:'image/svg+xml',buffer:Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>')});
+ await expect(page.getByText('Choose a PNG, JPEG or WebP image under 200 KB.',{exact:true})).toBeVisible();
+ await page.getByLabel('Logo image',{exact:true}).setInputFiles({name:'logo.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64')});
+ await expect(page.getByRole('img',{name:'Business logo',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Open menu',exact:true}).click(); await page.getByRole('navigation',{name:'Primary'}).getByRole('button',{name:'Documents',exact:true}).click();
+ await page.getByRole('button',{name:'New Invoice',exact:true}).last().click();
+ await page.getByRole('button',{name:'Download PDF',exact:true}).click();
+ await expect(page.locator('.paper')).toContainText('Alpha Limited');
+ await expect(page.locator('.paper')).toContainText('Optional TIN / 42');
+ await expect(page.locator('.paper')).toContainText('+260000000000');
+ await expect(page.locator('.paper img')).toBeVisible();
+ await page.getByRole('button',{name:'Close',exact:true}).click();
+ await page.reload(); await page.getByRole('button',{name:'Download PDF',exact:true}).click();
+ await expect(page.locator('.paper')).toContainText('Alpha Limited');
+ await expect(page.locator('.paper')).toContainText('Optional TIN / 42');
+});

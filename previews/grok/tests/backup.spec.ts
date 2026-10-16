@@ -8,7 +8,7 @@ test('Documents menu and real JSON backup download',async({page})=>{
  const downloadPromise=page.waitForEvent('download');
  await page.getByRole('button',{name:'Download backup',exact:true}).click();
  const download=await downloadPromise;
- expect(download.suggestedFilename()).toBe('free-invoice-maker-backup.json');
+ expect(download.suggestedFilename()).toBe('free-invoice-maker-backup_Acme-Studio.json');
  await download.saveAs('/home/shadrickvidmar/paperclip-handoffs/fim-grok-demo-backup.json');
  expect(await download.failure()).toBeNull();
 });

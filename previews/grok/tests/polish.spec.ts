@@ -1,0 +1,34 @@
+import {test,expect} from '@playwright/test';
+import fs from 'node:fs';
+const url=process.env.PREVIEW_URL || 'http://127.0.0.1:5176/freeinvoicemaker/grok/';
+const out='/home/shadrickvidmar/paperclip-handoffs';
+for(const width of [360,390,1440]) test(`ZMW amounts remain separated on editor paper and print at ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:844}); await page.goto(url);
+ await page.getByLabel('Document number',{exact:true}).waitFor();
+ await page.getByLabel('Client name',{exact:true}).fill('Client / Name');
+ await page.evaluate(()=>{
+ const key='fim-grok-preview-sandbox-v1'; const data=JSON.parse(localStorage.getItem(key)!);
+ const doc=data.state.documents.find((d:any)=>d.id===data.state.activeDocId);
+ doc.type='receipt';doc.status='issued';doc.issuer={...data.state.business,name:'Vidmar AI',currency:'ZMW'};
+ doc.lines=[100,24000,1234567.89].map((rate,i)=>({id:'large-'+i,name:'Service '+i,description:'Detailed service description',qty:1,rate}));
+ doc.payments=[{id:'p',amount:24000.25,date:'2026-10-16',method:'Bank transfer',reference:'test'}];
+ localStorage.setItem(key,JSON.stringify(data));
+ });
+ await page.reload();
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ const amounts=page.locator('li').filter({has:page.getByLabel('Rate',{exact:true})});
+ for(const li of await amounts.all()) expect(await li.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBeTruthy();
+ await page.getByRole('button',{name:'Download PDF',exact:true}).click();
+ const paper=page.locator('.paper');await expect(paper).toBeVisible();
+ await page.screenshot({path:`${out}/fim-polish-${process.env.PREVIEW_URL?'public':'local'}-${width}.png`});
+ expect(await paper.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBeTruthy();
+ const cells=await paper.locator('tbody td').evaluateAll(els=>els.map(el=>({text:el.textContent,w:el.clientWidth,s:el.scrollWidth,x:el.getBoundingClientRect().x,right:el.getBoundingClientRect().right})));
+ for(const cell of cells) expect(cell.s,cell.text!).toBeLessThanOrEqual(cell.w+1);
+ await expect(paper).toContainText(/ZMW\s+1,234,567.89/);
+ expect(await paper.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(255, 255, 255)');
+ expect(await paper.locator('table').evaluate(el=>getComputedStyle(el).borderRadius)).not.toBe('0px');
+ expect(await page.title()).toMatch(/^Receipt_.*_Vidmar-AI_to_Client-Name$/);
+ await page.pdf({path:`${out}/fim-polish-${process.env.PREVIEW_URL?'public':'local'}-${width}.pdf`,format:'A4',printBackground:true});
+ expect(errors).toEqual([]);
+ await page.getByRole('button',{name:'Close',exact:true}).click();await expect(page).toHaveTitle('Free Invoice Maker');
+});

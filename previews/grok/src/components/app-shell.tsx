@@ -30,32 +30,13 @@ const NAV: { id: ViewId; label: string; icon: typeof FileText }[] = [
 ];
 
 export function AppShell() {
+  const currentBusinessId = useStore(state => state.currentBusinessId);
   const view = useStore((state) => state.view);
   const setView = useStore((state) => state.setView);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     void useStore.persist.rehydrate();
-  }, []);
-
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    if (!viewport) return;
-    const update = () => {
-      // Mobile keyboards can shrink the visual viewport without resizing layout.
-      // Do not treat pinch zoom as a keyboard.
-      const inset = viewport.scale === 1
-        ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop) : 0;
-      document.documentElement.style.setProperty("--keyboard-inset", `${inset}px`);
-    };
-    update();
-    viewport.addEventListener("resize", update);
-    viewport.addEventListener("scroll", update);
-    return () => {
-      viewport.removeEventListener("resize", update);
-      viewport.removeEventListener("scroll", update);
-      document.documentElement.style.removeProperty("--keyboard-inset");
-    };
   }, []);
 
   function openView(next: ViewId) {
@@ -103,7 +84,7 @@ export function AppShell() {
             {view === "clients" ? <ClientsView /> : null}
             {view === "items" ? <ItemsView /> : null}
             {view === "templates" ? <TemplatesView /> : null}
-            {view === "settings" ? <SettingsView /> : null}
+            {view === "settings" ? <SettingsView key={currentBusinessId} /> : null}
             {view === "api" ? <ApiView /> : null}
           </div>
         </div>
