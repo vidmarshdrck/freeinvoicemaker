@@ -24,6 +24,7 @@ for(const width of [360,390,1440]) test(`DEMO creation totals receipt payments p
   await page.getByRole('button',{name:width<768?'PDF':'Export PDF',exact:true}).click();
   const paper=page.locator('.paper');
   await expect(paper).toBeVisible();
+  if(width<768) await expect(paper).toHaveCSS('padding-left','16px');
   await expect(paper).toHaveCSS('background-color','rgb(255, 255, 255)');
   await expect(paper).toHaveCSS('color','rgb(0, 0, 0)');
   await expect(paper).toContainText('DEMO Customer');

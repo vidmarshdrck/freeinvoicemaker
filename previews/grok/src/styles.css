@@ -216,6 +216,13 @@ html[data-theme] .field, html[data-theme] .quiet-input { color-scheme: inherit; 
   }
 }
 
+@media screen and (max-width: 767px) {
+  .paper { padding-left: 1rem; padding-right: 1rem; }
+  .paper .paper-banner { margin-left: -1rem; margin-right: -1rem; padding-left: 1rem; padding-right: 1rem; }
+  .paper table { font-size: 0.75rem; }
+  .paper th:not(:last-child), .paper td:not(:last-child) { padding-right: 0.375rem; }
+}
+
 @media print {
   .no-print {
     display: none !important;
