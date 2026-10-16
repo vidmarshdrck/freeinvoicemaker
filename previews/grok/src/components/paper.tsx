@@ -28,18 +28,9 @@ export function Paper({ doc, business }: { doc: Doc; business: Business }) {
           </div>
         ) : null}
         <div className="flex items-start justify-between gap-6 border-b border-rule pb-6">
-          <div>
+          <div className="min-w-0">
             {business.logo && /^data:image\/(png|jpeg|webp);base64,/.test(business.logo) ? <img src={business.logo} alt="Business logo" className="mb-3 h-14 max-w-36 object-contain" /> : null}
-            {doc.template === "signal" ? null : (
-              <p className="font-display text-2xl font-semibold">{business.name || "Your business"}</p>
-            )}
-            {business.legalName && business.legalName !== business.name ? <p className="mt-1 text-sm font-medium">{business.legalName}</p> : null}
-            {business.phone ? <p className="text-sm text-ink-soft">{business.phone}</p> : null}
-            {business.address ? <p className="mt-2 text-sm text-ink-soft">{business.address}</p> : null}
-            {business.cityLine ? <p className="text-sm text-ink-soft">{business.cityLine}</p> : null}
-            {business.email ? <p className="text-sm text-ink-soft">{business.email}</p> : null}
-            {business.website ? <p className="text-sm text-ink-soft">{business.website}</p> : null}
-            {business.taxNumber ? <p className="text-sm text-ink-soft">Tax {business.taxNumber}</p> : null}
+            {doc.template === "signal" ? null : <p className="font-display text-2xl font-semibold">{business.name || "Your business"}</p>}
           </div>
           <div className="text-right">
             {doc.template === "signal" ? null : (
@@ -60,14 +51,27 @@ export function Paper({ doc, business }: { doc: Doc; business: Business }) {
         </div>
       </header>
 
-      <section className="mb-8">
-        <p className="text-xs font-semibold tracking-wide text-ink-soft">BILL TO</p>
-        <p className="mt-1 font-medium">{doc.billTo.name || "Client"}</p>
-        {doc.billTo.address ? <p className="text-sm">{doc.billTo.address}</p> : null}
-        {doc.billTo.cityLine ? <p className="text-sm">{doc.billTo.cityLine}</p> : null}
-        {doc.billTo.email ? <p className="text-sm">{doc.billTo.email}</p> : null}
-        {doc.billTo.phone ? <p className="text-sm">{doc.billTo.phone}</p> : null}
-      </section>
+      <div className="billing-addresses mb-8 grid grid-cols-2 items-start gap-4">
+        <section aria-label="Billed by" className="min-w-0 [overflow-wrap:anywhere]">
+          <p className="text-xs font-semibold tracking-wide text-ink-soft">BILLED BY</p>
+          <p className="mt-1 font-medium">{business.name || "Your business"}</p>
+          {business.legalName && business.legalName !== business.name ? <p className="text-sm">{business.legalName}</p> : null}
+          {business.address ? <p className="text-sm">{business.address}</p> : null}
+          {business.cityLine ? <p className="text-sm">{business.cityLine}</p> : null}
+          {business.email ? <p className="text-sm">{business.email}</p> : null}
+          {business.phone ? <p className="text-sm">{business.phone}</p> : null}
+          {business.website ? <p className="text-sm">{business.website}</p> : null}
+          {business.taxNumber ? <p className="text-sm">Tax {business.taxNumber}</p> : null}
+        </section>
+        <section aria-label="Bill to" className="min-w-0 [overflow-wrap:anywhere]">
+          <p className="text-xs font-semibold tracking-wide text-ink-soft">BILL TO</p>
+          <p className="mt-1 font-medium">{doc.billTo.name || "Client"}</p>
+          {doc.billTo.address ? <p className="text-sm">{doc.billTo.address}</p> : null}
+          {doc.billTo.cityLine ? <p className="text-sm">{doc.billTo.cityLine}</p> : null}
+          {doc.billTo.email ? <p className="text-sm">{doc.billTo.email}</p> : null}
+          {doc.billTo.phone ? <p className="text-sm">{doc.billTo.phone}</p> : null}
+        </section>
+      </div>
 
       <table className="w-full border-collapse text-sm">
         <thead>

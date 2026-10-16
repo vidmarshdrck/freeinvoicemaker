@@ -755,16 +755,17 @@ function DateCard({
   onChange: (value: string) => void;
 }) {
   return (
-    <section className="relative rounded-xl border border-line bg-surface p-4">
-      <h2 className="text-sm text-muted">{label}</h2>
-      <p className="mt-2 font-display text-xl font-medium">{longDate(value)}</p>
-      <input
-        type="date"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        aria-label={label}
-        className="absolute inset-0 cursor-pointer opacity-0"
-      />
+    <section className="rounded-xl border border-line bg-surface p-4">
+      <label className="block text-sm text-muted">
+        {label}
+        <input
+          type="date"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          aria-label={label}
+          className="field mt-2 w-full min-w-0 cursor-pointer"
+        />
+      </label>
     </section>
   );
 }
